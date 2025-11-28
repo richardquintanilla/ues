@@ -21,3 +21,5 @@ Imports:
     scales,
     grDevices,
     htmltools
+URL: https://github.com/richardquintanilla/ues
+BugReports: https://github.com/richardquintanilla/ues/issues
