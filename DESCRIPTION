@@ -1,0 +1,23 @@
+Package: ues
+Title: Funciones Utiles para Tablas y Reportes
+Version: 0.0.1
+Authors@R: 
+    person(
+        given = "Nombre",
+        family = "Apellido",
+        email = "tu.correo@dominio.cl",
+        role = c("aut", "cre")
+    )
+Description: Colección de funciones internas utilizadas para generar tablas,
+    consolidar datos y automatizar reportes institucionales.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    reactable (>= 0.4.4),
+    reactablefmtr (>= 2.0.0),
+    dplyr,
+    scales,
+    grDevices,
+    htmltools
