@@ -19,158 +19,354 @@
 #' @return Widget reactable.
 #' @export
 rt_tabla <- function(
-    df, 
-    fijas = NULL, 
-    grupos = NULL, 
-    titulos = NULL, 
-    filtrar = TRUE, 
+    df,
+    fijas = NULL,
+    grupos = NULL,
+    titulos = NULL,
+    filtrar = TRUE,
     barras = NULL,
-    color_barra = c('red3','yellow2','green3','blue2','purple4'),
-    destacar_col = NULL, 
-    color_destacar = "gray", 
+    color_barra = c("#cd0000","#ffa500","#00cd00","#0000ee","#551a8b"),
+    destacar_col = NULL,
+    color_destacar = "#e3e3e3",
     cols_porcentaje = NULL,
-    destacar_row = NULL, 
-    highlight_color = "khaki"
+    destacar_row = NULL,
+    highlight_color = "#f0e68c"
 ) {
   
   `%||%` <- function(a,b) if(!is.null(a)) a else b
   
-  destacar_col <- intersect(destacar_col %||% character(0), names(df))
+  titulos         <- titulos         %||% list()
+  destacar_col    <- intersect(destacar_col    %||% character(0), names(df))
   cols_porcentaje <- intersect(cols_porcentaje %||% character(0), names(df))
-  barras <- intersect(barras %||% character(0), names(df))
+  barras          <- intersect(barras          %||% character(0), names(df))
+  fijas           <- intersect(fijas           %||% character(0), names(df))
   
-  to_rgba <- function(col, alpha = 0.35) {
-    rgb <- tryCatch(grDevices::col2rgb(col), error = function(e) NULL)
-    if (is.null(rgb)) rgb <- grDevices::col2rgb("gray")
-    sprintf("rgba(%d,%d,%d,%.2f)", rgb[1], rgb[2], rgb[3], alpha)
+  
+  # ==========================================================
+  # CSS + JS (con reglas para agrandar número en celda activa)
+  # ==========================================================
+  css_js <- htmltools::tagList(
+    
+    htmltools::tags$style(htmltools::HTML(sprintf("
+      
+      /* ===============================================
+                    HIGHLIGHT DE FILA (excepto columna fija)
+         =============================================== */
+      .reactable .rt-tr:hover .rt-td:not(.col-fija) {
+        background-color: %s !important;
+      }
+
+      /* ===============================================
+                    HIGHLIGHT DE COLUMNA (excepto fija)
+         =============================================== */
+      .rt-td.column-hover:not(.col-fija) {
+        background-color: %s !important;
+      }
+
+      /* Mantener aspecto columna fija */
+      .rt-td.col-fija {
+        background-color: #191970 !important;
+        color: white !important;
+      }
+      .rt-tr:hover .rt-td.col-fija {
+        background-color: #191970 !important;
+      }
+
+      /* ===============================================
+                   CELDA ACTIVA (hover real) + crece número
+         =============================================== */
+      /* transición suave */
+      .rt-td, .rt-td .rt-td-inner, .barra-outer, .barra-outer .barra-label {
+        transition: font-size 0.14s ease, transform 0.12s ease;
+      }
+
+      /* estilo de la celda activa (no aplica a columna fija) */
+      .rt-td.cell-hover:not(.col-fija) {
+        background-color: khaki !important;
+        z-index: 999 !important;
+        box-shadow: 0 0 0 2px midnightblue !important;
+        font-weight: bold !important;
+      }
+
+      /* AUMENTAR el tamaño de la fuente solo dentro de la celda activa:
+         - el contenedor inner para capturar texto heredado
+         - la etiqueta numérica con clase .barra-label (añadida en HTML) */
+      .rt-td.cell-hover:not(.col-fija) .rt-td-inner,
+      .rt-td.cell-hover:not(.col-fija) .barra-label {
+        font-size: 16px !important;
+        font-weight: bold !important;
+      }
+
+      /* ===============================================
+                   TÍTULOS DE GRUPO
+         =============================================== */
+      .reactable .rt-thead-group,
+      .reactable .rt-th-group {
+        background-color: #191970 !important;
+        color: white !important;
+        font-weight: bold !important;
+        text-align: center !important;
+        font-family: Arial !important;
+      }
+
+      /* ===============================================
+                  CONTORNO DE BARRAS
+         =============================================== */
+      .barra-outer {
+        border: 1px solid #d0d0d0 !important;
+        border-radius: 4px !important;
+      }
+
+    ", highlight_color, highlight_color))),
+    
+    
+    # ========================================================
+    # JS: evita hover por columna en columna fija
+    # ========================================================
+    htmltools::tags$script(htmltools::HTML("
+      document.addEventListener('DOMContentLoaded', function() {
+
+        const tables = document.querySelectorAll('.reactable');
+
+        tables.forEach(table => {
+          const inners = table.querySelectorAll('.rt-td-inner');
+
+          inners.forEach(inner => {
+
+            const cell = inner.closest('.rt-td');
+            if (!cell) return;
+
+            const colClass = Array.from(cell.classList)
+              .find(cl => cl.startsWith('col-'));
+
+            if (cell.classList.contains('col-fija')) return;
+            if (!colClass) return;
+
+            inner.addEventListener('mouseenter', () => {
+              table.querySelectorAll('.' + colClass)
+                .forEach(td => td.classList.add('column-hover'));
+              cell.classList.add('cell-hover');
+            });
+
+            inner.addEventListener('mouseleave', () => {
+              table.querySelectorAll('.column-hover')
+                .forEach(td => td.classList.remove('column-hover'));
+              cell.classList.remove('cell-hover');
+            });
+
+          });
+        });
+      });
+    "))
+  )
+  
+  
+  # ==========================================================
+  # Limpieza numérica
+  # ==========================================================
+  clean_numeric <- function(x) {
+    if (is.numeric(x)) return(as.numeric(x))
+    xch <- gsub("(?<=\\d)\\.(?=\\d{3}(?:\\D|$))", "", trimws(as.character(x)), perl = TRUE)
+    xch <- gsub(",", ".", xch, fixed = TRUE)
+    suppressWarnings(as.numeric(xch))
   }
   
-  col_rgba <- to_rgba(color_destacar, 0.35)
-  columnas <- list()
   
-  for (col in names(df)) {
-    
-    es_fija   <- col %in% fijas
-    es_destac <- col %in% destacar_col
-    es_pct    <- col %in% cols_porcentaje
-    es_barra  <- col %in% barras
-    
-    class_col <- paste0("col-", gsub("\\s+", "_", col))
-    
-    estilo_base <- if (es_destac) {
-      list(
-        boxShadow = sprintf("inset 0 0 0 9999px %s", col_rgba),
-        fontWeight = "bold"
-      )
-    } else list()
-    
-    # --- Columna fija ---
-    if (es_fija) {
-      columnas[[col]] <- reactable::colDef(
-        name = titulos[[col]] %||% col,
-        sticky = "left",
-        align = "left",
-        class = paste(class_col, "col-fija"),
-        headerStyle = list(background="midnightblue", color="white", fontWeight="bold"),
-        style = list(background="midnightblue", color="white", fontWeight="bold")
-      )
-      next
-    }
-    
-    # --- Columna con barras ---
-    if (es_barra) {
+  # ==========================================================
+  # Definición de columnas (añadida class 'barra-label' en número)
+  # ==========================================================
+  columnas <- lapply(names(df), function(colname) {
+    local({
+      col <- colname
+      class_col <- paste0("col-", gsub("\\s+", "_", col))
       
-      columnas[[col]] <- reactable::colDef(
-        name = titulos[[col]] %||% col,
-        align = "center",
-        class = class_col,
-        style = estilo_base,
-        cell = reactablefmtr::data_bars(
-          data = df,
-          columns = col,
-          text_position = "above",
-          fill_color = reactablefmtr::color_scales(df[[col]], colors = color_barra),
-          number_fmt = if (es_pct)
-            scales::percent_format(accuracy = 0.1, decimal.mark = ",")
-          else
-            scales::comma_format(big.mark=".", decimal.mark=","),
-          min_value = 0
-        )
+      estilo_base <- list(
+        fontFamily = "Arial",
+        fontSize   = "14px",
+        fontWeight = "normal",
+        textAlign  = "center"
       )
-      next
-    }
-    
-    # --- Columna numérica ---
-    if (is.numeric(df[[col]])) {
-      if (es_pct) {
-        columnas[[col]] <- reactable::colDef(
+      
+      
+      # ===================================================
+      # COLUMNA FIJA
+      # ===================================================
+      if (col %in% fijas) {
+        return(reactable::colDef(
           name = titulos[[col]] %||% col,
-          align = "center",
-          class = class_col,
-          style = estilo_base,
-          cell = reactable::JS("function(v){ return (v*100).toFixed(1).replace('.',',') + '%'; }")
+          sticky = "left",
+          align = "left",
+          class = paste(class_col, "col-fija"),
+          headerStyle = list(
+            background = "#191970",
+            color = "white",
+            fontWeight = "bold",
+            fontFamily = "Arial",
+            textAlign = "center"
+          ),
+          style = list(
+            background = "#191970",
+            color      = "white",
+            fontFamily = "Arial",
+            fontSize   = "14px",
+            fontWeight = "bold",
+            borderRight = "2px solid white"
+          )
+        ))
+      }
+      
+      
+      # ===================================================
+      # COLUMNAS CON BARRAS
+      # ===================================================
+      if (col %in% barras) {
+        
+        valores_limpios <- clean_numeric(df[[col]])
+        max_col <- max(valores_limpios, na.rm = TRUE)
+        if (!is.finite(max_col) || max_col <= 0) max_col <- 1
+        
+        pal <- if (length(color_barra)==5) color_barra else rep("#ccc",5)
+        es_pct <- col %in% cols_porcentaje
+        is_dest_col <- col %in% destacar_col
+        
+        return(
+          reactable::colDef(
+            name = titulos[[col]] %||% col,
+            class = class_col,
+            align = "center",
+            html = TRUE,
+            sortable = TRUE,
+            style = if (is_dest_col) 
+              list(background = color_destacar,
+                   fontWeight = "normal",
+                   fontFamily = "Arial",
+                   fontSize = "14px") 
+            else estilo_base,
+            
+            cell = function(value, index) {
+              
+              val_num <- clean_numeric(df[[col]][index])
+              
+              if (!is.finite(val_num)) { displayed <- ""; prop <- 0 }
+              else {
+                displayed <- if (es_pct)
+                  paste0(formatC(val_num*100, format="f", digits=1, decimal.mark=","), "%")
+                else
+                  formatC(val_num, format="f", digits=0, big.mark=".", decimal.mark=",")
+                
+                prop <- max(min(val_num / max_col, 1), 0)
+              }
+              
+              grp <- max(1, min(5,
+                                findInterval(prop, seq(0,1,length.out=6), all.inside=TRUE)
+              ))
+              
+              color_fill <- pal[grp]
+              fondo <- if (is_dest_col) "transparent" else "#f0f0f0"
+              
+              # Observa: agregamos class='barra-label' al div que contiene el número
+              htmltools::HTML(sprintf("
+                <div style='display:flex;align-items:center;gap:6px;'>
+                  <div class='barra-label' style='min-width:45px;text-align:right;
+                              font-family:Arial;font-size:14px;'>%s</div>
+                  <div class='barra-outer' style='flex-grow:1;height:14px;
+                             background:%s;overflow:hidden;'>
+                    <div style='height:100%%;width:%s%%;background:%s;'></div>
+                  </div>
+                </div>
+              ", displayed, fondo, prop*100, color_fill))
+            }
+          )
         )
-      } else {
-        columnas[[col]] <- reactable::colDef(
+      }
+      
+      
+      # ===================================================
+      # COLUMNA DESTACADA (gris)
+      # ===================================================
+      if (col %in% destacar_col) {
+        return(reactable::colDef(
           name = titulos[[col]] %||% col,
-          align = "center",
           class = class_col,
+          align = "center",
+          style = list(
+            background  = color_destacar,
+            fontWeight  = "normal",
+            fontFamily  = "Arial",
+            fontSize    = "14px"
+          ),
+          format = reactable::colFormat(separators = TRUE, digits=0, locale="es")
+        ))
+      }
+      
+      
+      # ===================================================
+      # NUMÉRICAS NORMALES
+      # ===================================================
+      if (is.numeric(df[[col]])) {
+        return(reactable::colDef(
+          name = titulos[[col]] %||% col,
+          class = class_col,
+          align = "center",
           style = estilo_base,
           format = reactable::colFormat(separators=TRUE, digits=0, locale="es")
-        )
+        ))
       }
-      next
-    }
-    
-    # --- Texto ---
-    columnas[[col]] <- reactable::colDef(
-      name = titulos[[col]] %||% col,
-      align = "center",
-      class = class_col,
-      style = estilo_base
-    )
-  }
+      
+      
+      # ===================================================
+      # TEXTO NORMAL
+      # ===================================================
+      reactable::colDef(
+        name = titulos[[col]] %||% col,
+        class = class_col,
+        align = "center",
+        style = estilo_base
+      )
+    })
+  })
   
-  row_style <- function(index) {
-    if (!is.null(destacar_row)) {
-      val <- df[[1]][index]
-      if (val %in% destacar_row) {
-        return(list(background="khaki", fontWeight="bold"))
-      }
-    }
+  names(columnas) <- names(df)
+  
+  
+  fila_style_fun <- function(i) {
+    if (!is.null(destacar_row) && df[[1]][i] %in% destacar_row)
+      return(list(background=color_destacar,fontWeight="bold"))
     list()
   }
   
-  # Grupos de columnas
-  col_groups <- NULL
+  
+  columnGroups <- NULL
   if (!is.null(grupos)) {
-    col_groups <- lapply(names(grupos), function(g) {
-      reactable::colGroup(
-        name = g,
-        columns = grupos[[g]],
-        headerStyle = list(background="midnightblue", color="white", fontWeight="bold")
-      )
-    })
+    columnGroups <- lapply(names(grupos), function(g)
+      reactable::colGroup(name=g, columns=grupos[[g]]))
   }
   
-  reactable::reactable(
+  
+  tbl <- reactable::reactable(
     df,
     columns = columnas,
-    columnGroups = col_groups,
-    compact = TRUE,
-    bordered = TRUE,
-    striped = TRUE,
-    pagination = FALSE,
+    columnGroups = columnGroups,
+    rowStyle = fila_style_fun,
     highlight = TRUE,
-    fullWidth = TRUE,
-    wrap = TRUE,
     searchable = filtrar,
-    rowStyle = row_style,
+    striped = TRUE,
+    bordered = TRUE,
+    pagination = FALSE,
+    language = reactable::reactableLang(searchPlaceholder="Filtrar"),
     defaultColDef = reactable::colDef(
-      align="center",
-      vAlign="center",
-      headerVAlign="center",
-      headerStyle=list(background="midnightblue", color="white", fontWeight="bold")
+      align = "center",
+      html = TRUE,
+      headerStyle = list(
+        background = "#191970",
+        color      = "white",
+        fontWeight = "bold",
+        fontFamily = "Arial",
+        textAlign  = "center"
+      ),
+      style = list(fontFamily = "Arial", fontSize = "14px")
     )
   )
+  
+  htmltools::browsable(htmltools::tagList(css_js, tbl))
 }
