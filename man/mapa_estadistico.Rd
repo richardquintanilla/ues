@@ -31,7 +31,7 @@ mapa_estadistico(
 
 \item{titulo_leyenda}{Título de la leyenda.}
 
-\item{comunas_requeridas}{vector opcional para forzar comunas específicas, en este caso comunas_06.}
+\item{comunas_requeridas}{vector opcional para forzar comunas específicas, en este caso ues::comunas_06.}
 
 \item{tooltip_text}{Texto plantilla opcional para personalizar el tooltip, ej: "Comuna: {nombre_comuna}<br>N° de casos: {format(n, big.mark = '.', decimal.mark = ',')}<br>Tasa: {format(round(valor, 2), decimal.mark = ',')}"}
 \value{
