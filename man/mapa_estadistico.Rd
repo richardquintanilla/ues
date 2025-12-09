@@ -27,14 +27,13 @@ mapa_estadistico(
 
 \item{tipo}{Tipo de escala: "continuo" o "discreto".}
 
-\item{colores}{Vector de colores para la escala.}
+\item{colores}{Vector de colores para la escala, ej: c("red1", "yellow1", "green3")}
 
 \item{titulo_leyenda}{Título de la leyenda.}
 
-\item{comunas_requeridas}{Vector opcional para forzar comunas específicas.}
+\item{comunas_requeridas}{vector opcional para forzar comunas específicas, en este caso comunas_06.}
 
-\item{tooltip_text}{Texto plantilla opcional para personalizar el tooltip, ej: "Comuna: {nombre_comuna}\if{html}{\out{<br>}}N° casos: {n}\if{html}{\out{<br>}}Tasa: {valor}"}
-}
+\item{tooltip_text}{Texto plantilla opcional para personalizar el tooltip, ej: "Comuna: {nombre_comuna}<br>N° de casos: {format(n, big.mark = '.', decimal.mark = ',')}<br>Tasa: {format(round(valor, 2), decimal.mark = ',')}"}
 \value{
 Un objeto plotly.
 }
