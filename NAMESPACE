@@ -2,3 +2,4 @@
 
 export(rt_tabla)
 export(mapa_estadistico)
+export(grafico_barras)
