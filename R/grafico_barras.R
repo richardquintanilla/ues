@@ -12,268 +12,98 @@
 #' @return Objeto plotly
 #' @export
 
-rt_tabla <- function(
-          df, 
-          fijas = NULL, 
-          grupos = NULL, 
-          titulos = NULL, 
-          filtrar = TRUE, 
-          barras = NULL, 
-          color_barra = c("#cd0000", "#ffa500", "#00cd00", "#0000ee", "#551a8b"),
-          destacar_col = NULL, 
-          color_destacar = "#e3e3e3",
-          cols_porcentaje = NULL, 
-          destacar_row = NULL, 
-          highlight_color = "#f0e68c"
-) {
-     
-     `%||%` <- function(a, b) if (!is.null(a)) a else b
-     
-     titulos <- titulos %||% list()
-     destacar_col <- intersect(destacar_col %||% character(0), names(df))
-     cols_porcentaje <- intersect(cols_porcentaje %||% character(0), names(df))
-     barras <- intersect(barras %||% character(0), names(df))
-     fijas <- intersect(fijas %||% character(0), names(df))
-     
-     css_js <- htmltools::tagList(
-          htmltools::tags$style(htmltools::HTML(sprintf("
-      .reactable .rt-tr:hover .rt-td:not(.col-fija) {
-        background-color: %s !important;
-      }
-
-      .rt-td.column-hover:not(.col-fija) {
-        background-color: %s !important;
-      }
-
-      .rt-td.col-fija {
-        background-color: #191970 !important;
-        color: white !important;
-      }
-      .rt-tr:hover .rt-td.col-fija {
-        background-color: #191970 !important;
-      }
-
-      .rt-td, .rt-td .rt-td-inner, .barra-outer, .barra-label {
-        transition: font-size 0.14s ease, transform 0.12s ease;
-      }
-
-      .rt-td.cell-hover:not(.col-fija) {
-        background-color: khaki !important;
-        z-index: 999 !important;
-        box-shadow: 0 0 0 2px midnightblue !important;
-        font-weight: bold !important;
-      }
-
-      .rt-td.cell-hover:not(.col-fija) .rt-td-inner,
-      .rt-td.cell-hover:not(.col-fija) .barra-label {
-        font-size: 16px !important;
-        font-weight: bold !important;
-      }
-
-      .reactable .rt-thead-group,
-      .reactable .rt-th-group {
-        background-color: #191970 !important;
-        color: white !important;
-        font-weight: bold !important;
-        text-align: center !important;
-        font-family: Arial !important;
-      }
-
-      .barra-outer {
-        border: 1px solid #d0d0d0 !important;
-        border-radius: 4px !important;
-      }
-
-    ", highlight_color, highlight_color))),
-          
-          htmltools::tags$script(htmltools::HTML("
-      document.addEventListener('DOMContentLoaded', function() {
-        const tables = document.querySelectorAll('.reactable');
-
-        tables.forEach(table => {
-          const inners = table.querySelectorAll('.rt-td-inner');
-
-          inners.forEach(inner => {
-            const cell = inner.closest('.rt-td');
-            if (!cell) return;
-
-            const colClass = Array.from(cell.classList)
-              .find(cl => cl.startsWith('col-'));
-
-            if (cell.classList.contains('col-fija')) return;
-            if (!colClass) return;
-
-            inner.addEventListener('mouseenter', () => {
-              table.querySelectorAll('.' + colClass)
-                .forEach(td => td.classList.add('column-hover'));
-              cell.classList.add('cell-hover');
-            });
-
-            inner.addEventListener('mouseleave', () => {
-              table.querySelectorAll('.column-hover')
-                .forEach(td => td.classList.remove('column-hover'));
-              cell.classList.remove('cell-hover');
-            });
-
-          });
-        });
-      });
-    "))
-     )
-     
-     clean_numeric <- function(x) {
-          if (is.numeric(x)) return(as.numeric(x))
-          xch <- gsub("(?<=\\d)\\.(?=\\d{3}(?:\\D|$))", "", trimws(as.character(x)), perl = TRUE)
-          xch <- gsub(",", ".", xch, fixed = TRUE)
-          suppressWarnings(as.numeric(xch))
-     }
-     
-     columnas <- lapply(names(df), function(colname) {
-          
-          local({
-               col <- colname
-               class_col <- paste0("col-", gsub("\\s+", "_", col))
-               estilo_base <- list(fontFamily = "Arial", fontSize = "14px", fontWeight = "normal", textAlign = "center")
-               
-               if (col %in% fijas) {
-                    return(reactable::colDef(
-                         name = titulos[[col]] %||% col,
-                         sticky = "left", align = "left",
-                         class = paste(class_col, "col-fija"),
-                         headerStyle = list(background = "#191970", color = "white", fontWeight = "bold", fontFamily = "Arial", textAlign = "center"),
-                         style = list(background = "#191970", color = "white", fontFamily = "Arial", fontSize = "14px", fontWeight = "bold", borderRight = "2px solid white")
-                    ))
-               }
-               
-               if (col %in% barras) {
-                    
-                    valores_limpios <- clean_numeric(df[[col]])
-                    
-                    pal <- if (length(color_barra) == 5) color_barra else rep("#ccc", 5)
-                    
-                    es_pct <- col %in% cols_porcentaje
-                    is_dest_col <- col %in% destacar_col
-                    
-                    return(reactable::colDef(
-                         name = titulos[[col]] %||% col,
-                         class = class_col,
-                         align = "center",
-                         html = TRUE,
-                         sortable = TRUE,
-                         style = if (is_dest_col)
-                              list(background = color_destacar, fontWeight = "normal", fontFamily = "Arial", fontSize = "14px")
-                         else estilo_base,
-                         
-                         cell = function(value, index) {
-                              
-                              val_num <- clean_numeric(df[[col]][index])
-                              
-                              if (!is.finite(val_num)) {
-                                   displayed <- ""
-                                   prop <- 0
-                              } else {
-                                   
-                                   # Formato porcentaje o número
-                                   displayed <- if (es_pct)
-                                        paste0(formatC(val_num * 100, format = "f", digits = 1, decimal.mark = ","), "%")
-                                   else
-                                        formatC(val_num, format = "f", digits = 0, big.mark = ".", decimal.mark = ",")
-                                   
-                                   # --- NUEVA ESCALA MIN–MAX REAL ---
-                                   min_col <- min(valores_limpios, na.rm = TRUE)
-                                   max_col <- max(valores_limpios, na.rm = TRUE)
-                                   
-                                   if (max_col - min_col == 0) {
-                                        prop <- 1
-                                   } else {
-                                        prop <- (val_num - min_col) / (max_col - min_col)
-                                   }
-                                   prop <- max(min(prop, 1), 0)
-                                   
-                                   # --- NUEVOS 5 GRUPOS POR QUINTILES ---
-                                   qs <- quantile(valores_limpios, probs = seq(0, 1, length.out = 6), na.rm = TRUE)
-                                   grp <- findInterval(val_num, qs, all.inside = TRUE)
-                              }
-                              
-                              color_fill <- pal[grp]
-                              fondo <- if (is_dest_col) "transparent" else "#f0f0f0"
-                              
-                              htmltools::HTML(sprintf("
-                <div style='display:flex;align-items:center;gap:6px;'>
-                  <div class='barra-label' style='min-width:45px;text-align:right;font-family:Arial;font-size:14px;'>%s</div>
-                  <div class='barra-outer' style='flex-grow:1;height:14px;background:%s;overflow:hidden;'>
-                    <div style='height:100%%;width:%s%%;background:%s;'></div>
-                  </div>
-                </div>
-              ", displayed, fondo, prop * 100, color_fill))
-                         }
-                    ))
-               }
-               
-               if (col %in% destacar_col) {
-                    return(reactable::colDef(
-                         name = titulos[[col]] %||% col,
-                         class = class_col,
-                         align = "center",
-                         style = list(background = color_destacar, fontWeight = "normal", fontFamily = "Arial", fontSize = "14px"),
-                         format = reactable::colFormat(separators = TRUE, digits = 0, locale = "es")
-                    ))
-               }
-               
-               if (is.numeric(df[[col]])) {
-                    return(reactable::colDef(
-                         name = titulos[[col]] %||% col,
-                         class = class_col,
-                         align = "center",
-                         style = estilo_base,
-                         format = reactable::colFormat(separators = TRUE, digits = 0, locale = "es")
-                    ))
-               }
-               
-               reactable::colDef(
-                    name = titulos[[col]] %||% col,
-                    class = class_col,
-                    align = "center",
-                    style = estilo_base
-               )
-               
-          })
-     })
-     
-     names(columnas) <- names(df)
-     
-     fila_style_fun <- function(i) {
-          if (!is.null(destacar_row) && df[[1]][i] %in% destacar_row)
-               return(list(background = color_destacar, fontWeight = "bold"))
-          list()
-     }
-     
-     columnGroups <- NULL
-     if (!is.null(grupos)) {
-          columnGroups <- lapply(names(grupos), function(g)
-               reactable::colGroup(name = g, columns = grupos[[g]])
-          )
-     }
-     
-     tbl <- reactable::reactable(
-          df,
-          columns = columnas,
-          columnGroups = columnGroups,
-          rowStyle = fila_style_fun,
-          highlight = TRUE,
-          searchable = filtrar,
-          striped = TRUE,
-          bordered = TRUE,
-          pagination = FALSE,
-          language = reactable::reactableLang(searchPlaceholder = "Filtrar"),
-          defaultColDef = reactable::colDef(
-               align = "center",
-               html = TRUE,
-               headerStyle = list(background = "#191970", color = "white", fontWeight = "bold",
-                                  fontFamily = "Arial", textAlign = "center"),
-               style = list(fontFamily = "Arial", fontSize = "14px")
-          )
-     )
-     
-     htmltools::browsable(htmltools::tagList(css_js, tbl))
+grafico_barras <- function(df_region, df_pais, comuna, cant, valor,
+                           ejey = "Porcentaje de cobertura (N° de XXX)", 
+                           titulo = "Porcentaje de cobertura O'Higgins - XXX",
+                           comunas_requeridas = c("Chépica", "Chimbarongo", "Codegua", "Coinco", "Coltauco", "Doñihue", "Graneros",
+                                                  "La Estrella", "Las Cabras", "Litueche", "Lolol", "Machalí", "Malloa", "Marchihue",
+                                                  "Mostazal", "Nancagua", "Navidad", "Olivar", "Palmilla", "Paredones", "Peralillo",
+                                                  "Peumo", "Pichidegua", "Pichilemu", "Placilla", "Pumanque", "Quinta de Tilcoco",
+                                                  "Rancagua", "Rengo", "Requínoa", "San Fernando", "San Vicente", "Santa Cruz", 
+                                                  "Región")) {
+        
+        # --- Cargar librerías necesarias ---
+        pkgs <- c("dplyr", "ggplot2", "plotly")
+        for (p in pkgs) {
+                if (!requireNamespace(p, quietly = TRUE)) {
+                        stop(paste0("❌ El paquete '", p, "' no está instalado. Instálalo con install.packages('", p, "')"))
+                }
+        }
+        
+        # --- Validaciones de columnas ---
+        tryCatch({
+                df_region %>% dplyr::select({{comuna}}, {{cant}}, {{valor}})
+                df_pais    %>% dplyr::select({{comuna}}, {{valor}})
+        }, error = function(e) {
+                stop("❌ No se encontraron las columnas definidas en 'comuna', 'cant' o 'valor' en los dataframes")
+        })
+        
+        # --- Validaciones de contenido ---
+        faltantes <- setdiff(comunas_requeridas, df_region %>% dplyr::pull({{comuna}}))
+        if (length(faltantes) > 0) {
+                stop(paste0("❌ df_region no contiene todas las filas requeridas. Faltan: ", 
+                            paste(faltantes, collapse = ", ")))
+        }
+        
+        if (!("País" %in% (df_pais %>% dplyr::pull({{comuna}})))) {
+                stop("❌ df_pais no contiene la fila 'País'")
+        }
+        
+        # --- Preprocesamiento ---
+        pais_val <- df_pais %>% 
+                dplyr::filter({{comuna}} == "País") %>% 
+                dplyr::pull({{valor}}) %>% 
+                as.numeric()
+        
+        region_ref <- df_region %>% 
+                dplyr::arrange(dplyr::desc({{valor}})) %>% 
+                dplyr::mutate(posicion = seq(1:n())) %>% 
+                dplyr::filter({{comuna}} == "Región")
+        
+        # --- Gráfico ---
+        fig <- df_region %>% 
+                dplyr::arrange(dplyr::desc({{valor}})) %>% 
+                dplyr::mutate(fill_col = seq_along({{comuna}}), height = 1) %>% 
+                ggplot2::ggplot(ggplot2::aes(x = reorder({{comuna}}, -{{valor}}), 
+                                             y = {{valor}}, 
+                                             fill = fill_col)) + 
+                ggplot2::geom_col(colour = "black", show.legend = FALSE) +
+                ggplot2::ylab(ejey) +
+                ggplot2::labs(title = titulo) +
+                ggplot2::coord_flip() +
+                ggplot2::geom_text(ggplot2::aes(label = paste0(" ", 
+                                                               format(round(100*{{valor}}, 2), decimal.mark = ","),
+                                                               "%  (",
+                                                               format({{cant}}, big.mark = "."), 
+                                                               ")"),
+                                                text = paste0("Comuna: ", {{comuna}},
+                                                              "<br>", "N° de vacunados: ", format({{cant}}, big.mark = "."),
+                                                              "<br>", "% de Cobertura: ", 
+                                                              format(round(100*{{valor}}, 2), decimal.mark = ","), "%")),
+                                   hjust = -0.9, size = 3) +
+                ggplot2::geom_vline(xintercept = region_ref$posicion, linetype = 2, color = "hotpink", alpha = 0.5) +
+                ggplot2::geom_text(ggplot2::aes(x = region_ref$posicion + 0.5,
+                                                y = max(df_region %>% dplyr::pull({{valor}})) * 0.9,
+                                                label = paste0("Región: ", 
+                                                               format(round(100*region_ref %>% dplyr::pull({{valor}}), 2), decimal.mark = ","), "%")),
+                                   color = "hotpink", vjust = -1, size = 3.5) +
+                ggplot2::geom_text(ggplot2::aes(x = region_ref$posicion + 1.5,
+                                                y = max(df_region %>% dplyr::pull({{valor}})) * 0.9,
+                                                label = paste0("País: ", 
+                                                               format(round(100*pais_val, 2), decimal.mark = ","), "%")),
+                                   color = "black", vjust = -1, size = 3.5) +
+                ggplot2::theme(axis.title.y = ggplot2::element_blank(),
+                               legend.position = "none") +
+                ggplot2::scale_fill_viridis_c(option = "turbo") +
+                ggplot2::theme(axis.text.x = ggplot2::element_blank(),
+                               axis.ticks.x = ggplot2::element_blank()) + 
+                ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0.01, 0.12)))
+        
+        # --- Plotly ---
+        fig_plotly <- plotly::ggplotly(fig, tooltip = "text") %>%
+                plotly::style(textposition = "right") %>% 
+                plotly::layout(plot_bgcolor = "white",
+                               xaxis = list(autorange = TRUE))
+        
+        return(fig_plotly)
 }
