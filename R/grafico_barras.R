@@ -65,7 +65,7 @@ grafico_barras <- function(df_region, df_pais, comuna, cant, valor,
                 dplyr::arrange(dplyr::desc({{valor}})) %>% 
                 dplyr::mutate(fill_col = seq_along({{comuna}}), height = 1) %>% 
                 ggplot2::ggplot(ggplot2::aes(x = reorder({{comuna}}, -{{valor}}), 
-                                             y = {{porc}}, 
+                                             y = {{valor}}, 
                                              fill = fill_col)) + 
                 ggplot2::geom_col(colour = "black", show.legend = FALSE) +
                 ggplot2::ylab(ejey) +
