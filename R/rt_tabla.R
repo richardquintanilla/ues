@@ -18,18 +18,19 @@
 #'
 #' @return Widget reactable.
 #' @export
+
 rt_tabla <- function(
-          df, 
-          fijas = NULL, 
-          grupos = NULL, 
-          titulos = NULL, 
-          filtrar = TRUE, 
-          barras = NULL, 
+          df,
+          fijas = NULL,
+          grupos = NULL,
+          titulos = NULL,
+          filtrar = TRUE,
+          barras = NULL,
           color_barra = c("#cd0000", "#ffa500", "#00cd00", "#0000ee", "#551a8b"),
-          destacar_col = NULL, 
+          destacar_col = NULL,
           color_destacar = "#e3e3e3",
-          cols_porcentaje = NULL, 
-          destacar_row = NULL, 
+          cols_porcentaje = NULL,
+          destacar_row = NULL,
           highlight_color = "#f0e68c"
 ) {
      
@@ -89,9 +90,9 @@ rt_tabla <- function(
         border: 1px solid #d0d0d0 !important;
         border-radius: 4px !important;
       }
-
     ", highlight_color, highlight_color))),
           
+          # JS hover
           htmltools::tags$script(htmltools::HTML("
       document.addEventListener('DOMContentLoaded', function() {
         const tables = document.querySelectorAll('.reactable');
@@ -135,28 +136,42 @@ rt_tabla <- function(
      }
      
      columnas <- lapply(names(df), function(colname) {
-          
           local({
+               
                col <- colname
                class_col <- paste0("col-", gsub("\\s+", "_", col))
-               estilo_base <- list(fontFamily = "Arial", fontSize = "14px", fontWeight = "normal", textAlign = "center")
                
+               estilo_base <- list(
+                    fontFamily = "Arial", fontSize = "14px",
+                    fontWeight = "normal", textAlign = "center"
+               )
+               
+               # COLUMNAS FIJAS
                if (col %in% fijas) {
                     return(reactable::colDef(
                          name = titulos[[col]] %||% col,
-                         sticky = "left", align = "left",
+                         sticky = "left",
+                         align = "left",
                          class = paste(class_col, "col-fija"),
-                         headerStyle = list(background = "#191970", color = "white", fontWeight = "bold", fontFamily = "Arial", textAlign = "center"),
-                         style = list(background = "#191970", color = "white", fontFamily = "Arial", fontSize = "14px", fontWeight = "bold", borderRight = "2px solid white")
+                         headerStyle = list(
+                              background = "#191970", color = "white",
+                              fontWeight = "bold", fontFamily = "Arial",
+                              textAlign = "center"
+                         ),
+                         style = list(
+                              background = "#191970", color = "white",
+                              fontFamily = "Arial", fontSize = "14px",
+                              fontWeight = "bold", borderRight = "2px solid white"
+                         )
                     ))
                }
                
+               # COLUMNAS CON BARRAS
                if (col %in% barras) {
                     
                     valores_limpios <- clean_numeric(df[[col]])
                     
                     pal <- if (length(color_barra) == 5) color_barra else rep("#ccc", 5)
-                    
                     es_pct <- col %in% cols_porcentaje
                     is_dest_col <- col %in% destacar_col
                     
@@ -166,9 +181,11 @@ rt_tabla <- function(
                          align = "center",
                          html = TRUE,
                          sortable = TRUE,
-                         style = if (is_dest_col)
-                              list(background = color_destacar, fontWeight = "normal", fontFamily = "Arial", fontSize = "14px")
-                         else estilo_base,
+                         style = if (is_dest_col) list(
+                              background = color_destacar,
+                              fontWeight = "normal", fontFamily = "Arial",
+                              fontSize = "14px"
+                         ) else estilo_base,
                          
                          cell = function(value, index) {
                               
@@ -179,70 +196,87 @@ rt_tabla <- function(
                                    prop <- 0
                               } else {
                                    
-                                   # Formato porcentaje o número
+                                   # ETIQUETA
                                    displayed <- if (es_pct)
                                         paste0(formatC(val_num * 100, format = "f", digits = 1, decimal.mark = ","), "%")
                                    else
                                         formatC(val_num, format = "f", digits = 0, big.mark = ".", decimal.mark = ",")
                                    
-                                   # --- NUEVA ESCALA MIN–MAX REAL ---
+                                   # RANGOS (colores)
                                    min_col <- min(valores_limpios, na.rm = TRUE)
                                    max_col <- max(valores_limpios, na.rm = TRUE)
                                    
-                                   if (max_col - min_col == 0) {
-                                        prop <- 1
-                                   } else {
-                                        prop <- (val_num - min_col) / (max_col - min_col)
-                                   }
-                                   prop <- max(min(prop, 1), 0)
-                                   
-                                   # --- NUEVOS 5 GRUPOS POR QUINTILES ---
                                    qs <- quantile(valores_limpios, probs = seq(0, 1, length.out = 6), na.rm = TRUE)
                                    grp <- findInterval(val_num, qs, all.inside = TRUE)
+                                   
+                                   # ANCHO DE LA BARRA
+                                   if (es_pct) {
+                                        # TOPE DE 100%
+                                        prop <- min(val_num, 1)
+                                   } else {
+                                        # ESCALA NORMAL (enteros)
+                                        if (max_col - min_col == 0) {
+                                             prop <- 1
+                                        } else {
+                                             prop <- (val_num - min_col) / (max_col - min_col)
+                                        }
+                                        prop <- max(min(prop, 1), 0)
+                                   }
                               }
                               
                               color_fill <- pal[grp]
                               fondo <- if (is_dest_col) "transparent" else "#f0f0f0"
                               
                               htmltools::HTML(sprintf("
-                <div style='display:flex;align-items:center;gap:6px;'>
-                  <div class='barra-label' style='min-width:45px;text-align:right;font-family:Arial;font-size:14px;'>%s</div>
-                  <div class='barra-outer' style='flex-grow:1;height:14px;background:%s;overflow:hidden;'>
-                    <div style='height:100%%;width:%s%%;background:%s;'></div>
-                  </div>
+              <div style='display:flex;align-items:center;gap:6px;'>
+                <div class='barra-label' style='min-width:45px;text-align:right;font-family:Arial;font-size:14px;'>%s</div>
+                <div class='barra-outer' style='flex-grow:1;height:14px;background:%s;overflow:hidden;'>
+                  <div style='height:100%%;width:%s%%;background:%s;'></div>
                 </div>
-              ", displayed, fondo, prop * 100, color_fill))
+              </div>
+            ", displayed, fondo, prop * 100, color_fill))
                          }
                     ))
                }
                
+               # COLUMNAS DESTACADAS
                if (col %in% destacar_col) {
                     return(reactable::colDef(
                          name = titulos[[col]] %||% col,
                          class = class_col,
                          align = "center",
-                         style = list(background = color_destacar, fontWeight = "normal", fontFamily = "Arial", fontSize = "14px"),
-                         format = reactable::colFormat(separators = TRUE, digits = 0, locale = "es")
+                         style = list(
+                              background = color_destacar,
+                              fontWeight = "normal",
+                              fontFamily = "Arial",
+                              fontSize = "14px"
+                         ),
+                         format = reactable::colFormat(
+                              separators = TRUE, digits = 0, locale = "es"
+                         )
                     ))
                }
                
+               # NUMÉRICAS NORMALES
                if (is.numeric(df[[col]])) {
                     return(reactable::colDef(
                          name = titulos[[col]] %||% col,
                          class = class_col,
                          align = "center",
                          style = estilo_base,
-                         format = reactable::colFormat(separators = TRUE, digits = 0, locale = "es")
+                         format = reactable::colFormat(
+                              separators = TRUE, digits = 0, locale = "es"
+                         )
                     ))
                }
                
+               # TEXTOS
                reactable::colDef(
                     name = titulos[[col]] %||% col,
                     class = class_col,
                     align = "center",
                     style = estilo_base
                )
-               
           })
      })
      
@@ -257,8 +291,7 @@ rt_tabla <- function(
      columnGroups <- NULL
      if (!is.null(grupos)) {
           columnGroups <- lapply(names(grupos), function(g)
-               reactable::colGroup(name = g, columns = grupos[[g]])
-          )
+               reactable::colGroup(name = g, columns = grupos[[g]]))
      }
      
      tbl <- reactable::reactable(
@@ -275,11 +308,15 @@ rt_tabla <- function(
           defaultColDef = reactable::colDef(
                align = "center",
                html = TRUE,
-               headerStyle = list(background = "#191970", color = "white", fontWeight = "bold",
-                                  fontFamily = "Arial", textAlign = "center"),
+               headerStyle = list(
+                    background = "#191970", color = "white",
+                    fontWeight = "bold", fontFamily = "Arial",
+                    textAlign = "center"
+               ),
                style = list(fontFamily = "Arial", fontSize = "14px")
           )
      )
      
      htmltools::browsable(htmltools::tagList(css_js, tbl))
 }
+
