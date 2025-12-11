@@ -20,7 +20,12 @@ mapa_estadistico <- function(
                 tipo = c("continuo", "discreto"),
                 colores = c("red1", "yellow1", "green3"),
                 titulo_leyenda = "Valor",
-                comunas_requeridas = NULL,
+                comunas_requeridas = c("Chépica", "Chimbarongo", "Codegua", "Coinco", "Coltauco",
+    "Doñihue", "Graneros", "La Estrella", "Las Cabras", "Litueche", "Lolol", "Machalí",
+    "Malloa", "Marchihue", "Mostazal", "Nancagua", "Navidad", "Olivar", "Palmilla",
+    "Paredones", "Peralillo", "Peumo", "Pichidegua", "Pichilemu", "Placilla", "Pumanque",
+    "Quinta de Tilcoco", "Rancagua", "Rengo", "Requínoa", "San Fernando", "San Vicente",
+    "Santa Cruz"),
                 tooltip_text = NULL
 ) {
         library(dplyr)
