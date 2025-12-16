@@ -18,7 +18,8 @@
 #' calcular_edad(c("2000-01-01", "2010-06-15"))
 #'
 #' @importFrom lubridate year month day years months `%m+%`
-#' @export
+#' @export}
+
 calcular_edad <- function(fecha_inicial, fecha_final = Sys.Date()) {
 
         # Intentar convertir a Date
@@ -42,7 +43,7 @@ calcular_edad <- function(fecha_inicial, fecha_final = Sys.Date()) {
         ff <- pmax(fi, fecha_final[validas])  # Evita negativos
 
         # Diferencias simples
-        años  <- lubridate::year(ff)  - lubridate::year(fi)
+        anios  <- lubridate::year(ff)  - lubridate::year(fi)
         meses <- lubridate::month(ff) - lubridate::month(fi)
         dias  <- lubridate::day(ff)   - lubridate::day(fi)
 
@@ -50,16 +51,16 @@ calcular_edad <- function(fecha_inicial, fecha_final = Sys.Date()) {
         ajuste_mes <- dias < 0
         meses[ajuste_mes] <- meses[ajuste_mes] - 1
 
-        ajuste_año <- meses < 0
-        años[ajuste_año] <- años[ajuste_año] - 1
-        meses[ajuste_año] <- meses[ajuste_año] + 12
+        ajuste_anio <- meses < 0
+        anios[ajuste_anio] <- años[ajuste_anio] - 1
+        meses[ajuste_anio] <- meses[ajuste_anio] + 12
 
         # Recalcular fecha base para días
-        fecha_base <- fi %m+% lubridate::years(años) %m+% lubridate::months(meses)
+        fecha_base <- fi %m+% lubridate::years(anios) %m+% lubridate::months(meses)
         dias <- as.integer(ff - fecha_base)
 
         resultado[validas] <- paste0(
-                sprintf("%03d", años),
+                sprintf("%03d", anios),
                 sprintf("%02d", meses),
                 sprintf("%02d", dias)
         )
