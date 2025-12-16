@@ -1,12 +1,12 @@
-#' Calcular dígito verificador (DV) de un RUN/RUT chileno
+#' Calcular dígito verificador (DV) de un RUN chileno
 #'
 #' Calcula el dígito verificador usando el algoritmo módulo 11 y
-#' devuelve el RUN/RUT completo (sin formato).
+#' devuelve el RUN completo (sin formato).
 #'
-#' @param run Vector de RUN/RUT como character o numeric.
+#' @param run Vector de RUN como character o numeric.
 #'            Puede incluir puntos y guión.
 #'
-#' @return Un vector character con el RUN/RUT concatenado con su DV.
+#' @return Un vector character con el RUN concatenado con su DV.
 #'         Devuelve NA cuando la entrada es NA o vacía.
 #'
 #' @examples
