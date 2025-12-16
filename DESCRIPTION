@@ -3,9 +3,9 @@ Title: Funciones Utiles para Tablas y Reportes
 Version: 0.0.1
 Authors@R: 
     person(
-        given = "Nombre",
-        family = "Apellido",
-        email = "tu.correo@dominio.cl",
+        given = "Richard",
+        family = "Quintanilla",
+        email = "mail@dominio.cl",
         role = c("aut", "cre")
     )
 Description: Colección de funciones internas utilizadas para generar tablas,
