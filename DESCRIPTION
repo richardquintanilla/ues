@@ -20,6 +20,7 @@ Imports:
     dplyr,
     scales,
     grDevices,
+    lubridate,
     htmltools
 URL: https://github.com/richardquintanilla/ues
 BugReports: https://github.com/richardquintanilla/ues/issues
