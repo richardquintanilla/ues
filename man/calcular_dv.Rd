@@ -2,21 +2,21 @@
 % Please edit documentation in R/calcular_dv.R
 \name{calcular_dv}
 \alias{calcular_dv}
-\title{Calcular dígito verificador (DV) de un RUN/RUT chileno}
+\title{Calcular dígito verificador (DV) de un RUN chileno}
 \usage{
 calcular_dv(run)
 }
 \arguments{
-\item{run}{Vector de RUN/RUT como character o numeric.
+\item{run}{Vector de RUN como character o numeric.
 Puede incluir puntos y guión.}
 }
 \value{
-Un vector character con el RUN/RUT concatenado con su DV.
+Un vector character con el RUN concatenado con su DV.
 Devuelve NA cuando la entrada es NA o vacía.
 }
 \description{
 Calcula el dígito verificador usando el algoritmo módulo 11 y
-devuelve el RUN/RUT completo (sin formato).
+devuelve el RUN completo (sin formato).
 }
 \examples{
 calcular_dv("12.345.678")
