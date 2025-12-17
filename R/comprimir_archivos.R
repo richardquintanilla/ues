@@ -30,51 +30,52 @@ comprimir_archivos <- function(ruta_archivos,
                                nombre_zip = NULL,
                                borrar = FALSE) {
 
-        ruta_archivos <- normalizePath(ruta_archivos, mustWork = FALSE)
+  ruta_archivos <- normalizePath(ruta_archivos, mustWork = FALSE)
 
-        if (!dir.exists(ruta_archivos)) {
-                stop("La ruta especificada no existe: ", ruta_archivos)
-        }
+  if (!dir.exists(ruta_archivos)) {
+    stop("La ruta especificada no existe: ", ruta_archivos)
+  }
 
-        archivos <- list.files(
-                path = ruta_archivos,
-                pattern = patron,
-                full.names = TRUE
-        )
+  archivos_full <- list.files(
+    path = ruta_archivos,
+    pattern = patron,
+    full.names = TRUE
+  )
 
-        if (length(archivos) == 0) {
-                stop("No se encontraron archivos con el patrón: ", patron)
-        }
+  if (length(archivos_full) == 0) {
+    stop("No se encontraron archivos con el patrón: ", patron)
+  }
 
-        fecha <- format(Sys.Date(), "%y%m%d")
+  # 👇 SOLO nombres, sin ruta
+  archivos <- basename(archivos_full)
 
-        if (is.null(nombre_zip) || nombre_zip == "") {
-                base <- "hoy"
-        } else {
-                base <- sub("\\.zip$", "", basename(nombre_zip), ignore.case = TRUE)
-                if (base == "") base <- "hoy"
-        }
+  fecha <- format(Sys.Date(), "%y%m%d")
+  base <- if (is.null(nombre_zip) || nombre_zip == "") {
+    "hoy"
+  } else {
+    sub("\\.zip$", "", basename(nombre_zip), ignore.case = TRUE)
+  }
 
-        nombre_zip_final <- paste0(fecha, "_", base, ".zip")
-        ruta_zip <- file.path(ruta_archivos, nombre_zip_final)
+  nombre_zip_final <- paste0(fecha, "_", base, ".zip")
+  ruta_zip <- file.path(ruta_archivos, nombre_zip_final)
 
-        tryCatch(
-                utils::zip(zipfile = ruta_zip, files = archivos),
-                error = function(e) {
-                        stop("Error al crear el ZIP: ", conditionMessage(e))
-                }
-        )
+  # Zip plano SIN setwd()
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(ruta_archivos)
 
-        if (isTRUE(borrar)) {
-                res_borrar <- file.remove(archivos)
-                message(sum(res_borrar, na.rm = TRUE),
-                        " de ", length(archivos),
-                        " archivos comprimidos y eliminados.")
-        } else {
-                message(length(archivos), " archivos comprimidos y conservados.")
-        }
+  utils::zip(zipfile = nombre_zip_final, files = archivos)
 
-        message("ZIP creado en: ", ruta_zip)
+  if (isTRUE(borrar)) {
+    res <- file.remove(archivos_full)
+    message(sum(res, na.rm = TRUE),
+            " de ", length(archivos_full),
+            " archivos comprimidos y eliminados.")
+  } else {
+    message(length(archivos_full), " archivos comprimidos y conservados.")
+  }
 
-        invisible(list(zip = ruta_zip, archivos = archivos))
+  message("ZIP creado en: ", ruta_zip)
+
+  invisible(list(zip = ruta_zip, archivos = archivos))
 }
