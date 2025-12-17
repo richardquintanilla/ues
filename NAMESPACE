@@ -2,6 +2,7 @@
 
 export(calcular_dv)
 export(calcular_edad)
+export(comprimir_archivos)
 export(grafico_barras)
 export(mapa_estadistico)
 export(rt_tabla)
