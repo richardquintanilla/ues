@@ -106,7 +106,7 @@ mapa_estadistico <- function(
         
         # gráfico
         g <- ggplot(mapa_join) +
-                geom_sf(aes(geometry = geometry, fill = fill_var)) +
+                geom_sf(aes(geometry = geometry, fill = fill_var), linewidth = 0.5) +
                 geom_sf_text(aes(label = nombre_comuna, text = text_label), size = 3.1, fontface = "bold", color = "black") +
                 labs(title = titulo, fill = titulo_leyenda, x = "Longitud", y = "Latitud") +
                 theme_light(base_size = 10) +
