@@ -30,51 +30,51 @@ comprimir_archivos <- function(ruta_archivos,
                                nombre_zip = NULL,
                                borrar = FALSE) {
 
-  ruta_archivos <- normalizePath(ruta_archivos, mustWork = FALSE)
+        ruta_archivos <- normalizePath(ruta_archivos, mustWork = FALSE)
 
-  if (!dir.exists(ruta_archivos)) {
-    stop("La ruta especificada no existe: ", ruta_archivos)
-  }
+        if (!dir.exists(ruta_archivos)) {
+                stop("La ruta especificada no existe: ", ruta_archivos)
+        }
 
-  archivos <- list.files(
-    path = ruta_archivos,
-    pattern = patron,
-    full.names = TRUE
-  )
+        archivos <- list.files(
+                path = ruta_archivos,
+                pattern = patron,
+                full.names = TRUE
+        )
 
-  if (length(archivos) == 0) {
-    stop("No se encontraron archivos con el patrón: ", patron)
-  }
+        if (length(archivos) == 0) {
+                stop("No se encontraron archivos con el patrón: ", patron)
+        }
 
-  fecha <- format(Sys.Date(), "%y%m%d")
+        fecha <- format(Sys.Date(), "%y%m%d")
 
-  if (is.null(nombre_zip) || nombre_zip == "") {
-    base <- "hoy"
-  } else {
-    base <- sub("\\.zip$", "", basename(nombre_zip), ignore.case = TRUE)
-    if (base == "") base <- "hoy"
-  }
+        if (is.null(nombre_zip) || nombre_zip == "") {
+                base <- "hoy"
+        } else {
+                base <- sub("\\.zip$", "", basename(nombre_zip), ignore.case = TRUE)
+                if (base == "") base <- "hoy"
+        }
 
-  nombre_zip_final <- paste0(fecha, "_", base, ".zip")
-  ruta_zip <- file.path(ruta_archivos, nombre_zip_final)
+        nombre_zip_final <- paste0(fecha, "_", base, ".zip")
+        ruta_zip <- file.path(ruta_archivos, nombre_zip_final)
 
-  tryCatch(
-    utils::zip(zipfile = ruta_zip, files = archivos),
-    error = function(e) {
-      stop("Error al crear el ZIP: ", conditionMessage(e))
-    }
-  )
+        tryCatch(
+                utils::zip(zipfile = ruta_zip, files = archivos),
+                error = function(e) {
+                        stop("Error al crear el ZIP: ", conditionMessage(e))
+                }
+        )
 
-  if (isTRUE(borrar)) {
-    res_borrar <- file.remove(archivos)
-    message(sum(res_borrar, na.rm = TRUE),
-            " de ", length(archivos),
-            " archivos comprimidos y eliminados.")
-  } else {
-    message(length(archivos), " archivos comprimidos y conservados.")
-  }
+        if (isTRUE(borrar)) {
+                res_borrar <- file.remove(archivos)
+                message(sum(res_borrar, na.rm = TRUE),
+                        " de ", length(archivos),
+                        " archivos comprimidos y eliminados.")
+        } else {
+                message(length(archivos), " archivos comprimidos y conservados.")
+        }
 
-  message("ZIP creado en: ", ruta_zip)
+        message("ZIP creado en: ", ruta_zip)
 
-  invisible(list(zip = ruta_zip, archivos = archivos))
+        invisible(list(zip = ruta_zip, archivos = archivos))
 }
