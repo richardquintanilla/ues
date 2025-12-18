@@ -4,6 +4,7 @@
 #' @param fecha_final Fecha final (Date o coercible). Por defecto Sys.Date()
 #'
 #' @return character en formato AAAMMDD
+#' @importFrom lubridate year month day add_with_rollback period
 #' @export
 calcular_edad <- function(fecha_inicial, fecha_final = Sys.Date()) 
 {
