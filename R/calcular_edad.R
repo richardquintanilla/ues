@@ -1,25 +1,10 @@
-#' Calcular edad exacta en formato AAA MM DD
+#' Calcular edad exacta entre dos fechas
 #'
-#' Calcula la diferencia entre dos fechas en años, meses y días,
-#' devolviendo un string con formato \code{AAAMMDD}.
+#' @param fecha_inicial Fecha inicial (Date o coercible)
+#' @param fecha_final Fecha final (Date o coercible). Por defecto Sys.Date()
 #'
-#' @param fecha_inicial Fecha de inicio (nacimiento), coercible a Date.
-#' @param fecha_final Fecha final de referencia. Por defecto \code{Sys.Date()}.
-#'
-#' @return Un vector character con la edad en formato \code{AAAMMDD}.
-#'         Devuelve NA cuando alguna fecha es inválida.
-#'
-#' @details
-#' Si \code{fecha_final} es anterior a \code{fecha_inicial}, se ajusta
-#' automáticamente para evitar edades negativas.
-#'
-#' @examples
-#' calcular_edad("1990-05-10", "2024-05-09")
-#' calcular_edad(c("2000-01-01", "2010-06-15"))
-#'
-#' @importFrom lubridate year month day years months `%m+%`
-#' @export}
-
+#' @return character en formato AAAMMDD
+#' @export
 calcular_edad <- function(fecha_inicial, fecha_final = Sys.Date()) 
 {
   fecha_inicial <- suppressWarnings(as.Date(fecha_inicial))
