@@ -20,50 +20,47 @@
 #' @importFrom lubridate year month day years months `%m+%`
 #' @export}
 
-calcular_edad <- function(fecha_inicial, fecha_final = Sys.Date()) {
-
-        # Intentar convertir a Date
-        fecha_inicial <- suppressWarnings(as.Date(fecha_inicial))
-        fecha_final   <- suppressWarnings(as.Date(fecha_final))
-
-        # Vectorización
-        n <- max(length(fecha_inicial), length(fecha_final))
-        fecha_inicial <- rep(fecha_inicial, length.out = n)
-        fecha_final   <- rep(fecha_final,   length.out = n)
-
-        resultado <- rep(NA_character_, n)
-        validas <- !is.na(fecha_inicial) & !is.na(fecha_final)
-
-        if (!any(validas)) {
-                warning("Todas las fechas son NA o inválidas.")
-                return(resultado)
-        }
-
-        fi <- fecha_inicial[validas]
-        ff <- pmax(fi, fecha_final[validas])  # Evita negativos
-
-        # Diferencias simples
-        anios  <- lubridate::year(ff)  - lubridate::year(fi)
-        meses <- lubridate::month(ff) - lubridate::month(fi)
-        dias  <- lubridate::day(ff)   - lubridate::day(fi)
-
-        # Ajustes
-        ajuste_mes <- dias < 0
-        meses[ajuste_mes] <- meses[ajuste_mes] - 1
-
-        ajuste_anio <- meses < 0
-        anios[ajuste_anio] <- anios[ajuste_anio] - 1
-        meses[ajuste_anio] <- meses[ajuste_anio] + 12
-
-        # Recalcular fecha base para días
-        fecha_base <- fi %m+% lubridate::years(anios) %m+% lubridate::months(meses)
-        dias <- as.integer(ff - fecha_base)
-
-        resultado[validas] <- paste0(
-                sprintf("%03d", anios),
-                sprintf("%02d", meses),
-                sprintf("%02d", dias)
-        )
-
-        resultado
+calcular_edad <- function(fecha_inicial, fecha_final = Sys.Date()) 
+{
+  fecha_inicial <- suppressWarnings(as.Date(fecha_inicial))
+  fecha_final   <- suppressWarnings(as.Date(fecha_final))
+  
+  n <- max(length(fecha_inicial), length(fecha_final))
+  fecha_inicial <- rep(fecha_inicial, length.out = n)
+  fecha_final   <- rep(fecha_final, length.out = n)
+  
+  resultado <- rep(NA_character_, n)
+  validas <- !is.na(fecha_inicial) & !is.na(fecha_final)
+  
+  if (!any(validas)) {
+    warning("Todas las fechas son NA o inválidas.")
+    return(resultado)
+  }
+  
+  fi <- fecha_inicial[validas]
+  ff <- pmax(fi, fecha_final[validas])
+  
+  anios <- lubridate::year(ff)  - lubridate::year(fi)
+  meses <- lubridate::month(ff) - lubridate::month(fi)
+  dias  <- lubridate::day(ff)   - lubridate::day(fi)
+  
+  meses[dias < 0] <- meses[dias < 0] - 1
+  anios[meses < 0] <- anios[meses < 0] - 1
+  meses[meses < 0] <- meses[meses < 0] + 12
+  
+  fecha_base <- lubridate::add_with_rollback(
+    fi,
+    lubridate::period(years = anios, months = meses)
+  )
+  
+  dias <- as.integer(ff - fecha_base)
+  
+  resultado[validas] <- paste0(
+    sprintf("%03d", anios),
+    sprintf("%02d", meses),
+    sprintf("%02d", dias)
+  )
+  
+  resultado
 }
+
