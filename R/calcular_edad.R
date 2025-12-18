@@ -63,4 +63,3 @@ calcular_edad <- function(fecha_inicial, fecha_final = Sys.Date())
   
   resultado
 }
-
