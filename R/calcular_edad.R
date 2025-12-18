@@ -52,7 +52,7 @@ calcular_edad <- function(fecha_inicial, fecha_final = Sys.Date()) {
         meses[ajuste_mes] <- meses[ajuste_mes] - 1
 
         ajuste_anio <- meses < 0
-        anios[ajuste_anio] <- anio[ajuste_anio] - 1
+        anios[ajuste_anio] <- anios[ajuste_anio] - 1
         meses[ajuste_anio] <- meses[ajuste_anio] + 12
 
         # Recalcular fecha base para días
