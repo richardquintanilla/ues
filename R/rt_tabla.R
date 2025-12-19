@@ -76,6 +76,11 @@ rt_tabla <- function(
   height: 100%%;
 }
 
+/* Columnas fijas: centradas verticalmente pero alineadas a la izquierda */
+.rt-td.col-fija .rt-td-inner {
+  justify-content: flex-start !important;
+}
+
 .barra-label {
   display: flex;
   align-items: center;
