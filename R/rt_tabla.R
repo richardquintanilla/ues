@@ -201,7 +201,9 @@ rt_tabla <- function (df, fijas = NULL, grupos = NULL, titulos = NULL, filtrar =
               list(background = color_destacar, fontFamily = "Arial", fontSize = "14px")
             else estilo_base,
             cell = function(value, index) {
-              val_num <- clean_numeric(df[[col]][index])
+              val_num_raw <- clean_numeric(df[[col]][index])
+val_num <- if (decimales > 0) val_num_raw * 100 else val_num_raw
+
               
               if (!is.finite(val_num)) {
                 displayed <- ""
