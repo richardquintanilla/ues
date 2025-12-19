@@ -64,6 +64,24 @@ rt_tabla <- function(
         transition: font-size 0.14s ease, transform 0.12s ease;
       }
 
+/* Centrado vertical del contenido */
+.rt-td {
+  vertical-align: middle !important;
+}
+
+.rt-td-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.barra-label {
+  display: flex;
+  align-items: center;
+}
+
+
       .rt-td.cell-hover:not(.col-fija) {
         background-color: khaki !important;
         z-index: 999 !important;
