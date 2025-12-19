@@ -31,7 +31,8 @@ rt_tabla <- function (
   color_destacar = "#e3e3e3",
   cols_porcentaje = NULL,
   destacar_row = NULL,
-  highlight_color = "#f0e68c"
+  highlight_color = "#f0e68c",
+  decimales = 0
 ) {
 
   `%||%` <- function(a, b) if (!is.null(a)) a else b
@@ -67,6 +68,22 @@ rt_tabla <- function (
           transition: font-size 0.14s ease, transform 0.12s ease;
         }
 
+        /* ---- CENTRADO VERTICAL ---- */
+        .rt-td {
+          vertical-align: middle !important;
+        }
+
+        .rt-td-inner {
+          display: flex;
+          align-items: center;
+        }
+
+        /* Columna fija: izquierda SIEMPRE */
+        .rt-td.col-fija .rt-td-inner {
+          justify-content: flex-start;
+          text-align: left;
+        }
+
         .rt-td.cell-hover:not(.col-fija) {
           background-color: khaki !important;
           z-index: 999 !important;
@@ -95,41 +112,6 @@ rt_tabla <- function (
         }
         ", highlight_color, highlight_color)
       )
-    ),
-
-    htmltools::tags$script(
-      htmltools::HTML("
-        document.addEventListener('DOMContentLoaded', function() {
-          const tables = document.querySelectorAll('.reactable');
-
-          tables.forEach(table => {
-            const inners = table.querySelectorAll('.rt-td-inner');
-
-            inners.forEach(inner => {
-              const cell = inner.closest('.rt-td');
-              if (!cell) return;
-
-              const colClass = Array.from(cell.classList)
-                .find(cl => cl.startsWith('col-'));
-
-              if (cell.classList.contains('col-fija')) return;
-              if (!colClass) return;
-
-              inner.addEventListener('mouseenter', () => {
-                table.querySelectorAll('.' + colClass)
-                  .forEach(td => td.classList.add('column-hover'));
-                cell.classList.add('cell-hover');
-              });
-
-              inner.addEventListener('mouseleave', () => {
-                table.querySelectorAll('.column-hover')
-                  .forEach(td => td.classList.remove('column-hover'));
-                cell.classList.remove('cell-hover');
-              });
-            });
-          });
-        });
-      ")
     )
   )
 
@@ -144,12 +126,7 @@ rt_tabla <- function (
     local({
       col <- colname
       class_col <- paste0("col-", gsub("\\s+", "_", col))
-      estilo_base <- list(
-        fontFamily = "Arial",
-        fontSize = "14px",
-        fontWeight = "normal",
-        textAlign = "center"
-      )
+      estilo_base <- list(fontFamily = "Arial", fontSize = "14px", fontWeight = "normal", textAlign = "center")
 
       if (col %in% fijas) {
         return(
@@ -191,27 +168,22 @@ rt_tabla <- function (
             html = TRUE,
             sortable = TRUE,
             style = if (is_dest_col)
-              list(
-                background = color_destacar,
-                fontWeight = "normal",
-                fontFamily = "Arial",
-                fontSize = "14px"
-              )
+              list(background = color_destacar, fontFamily = "Arial", fontSize = "14px")
             else estilo_base,
             cell = function(value, index) {
+
               val_num <- clean_numeric(df[[col]][index])
 
               if (!is.finite(val_num)) {
                 displayed <- ""
                 prop <- 0
               } else {
-                displayed <- if (es_pct)
-                  paste0(
-                    formatC(val_num * 100, format = "f", digits = 1, decimal.mark = ","),
-                    "%"
-                  )
-                else
-                  formatC(val_num, format = "f", digits = 0, big.mark = ".", decimal.mark = ",")
+
+                displayed <- if (es_pct) {
+                  paste0(formatC(val_num * 100, format = "f", digits = 1, decimal.mark = ","), "%")
+                } else {
+                  formatC(val_num, format = "f", digits = decimales, big.mark = ".", decimal.mark = ",")
+                }
 
                 min_col <- min(valores_limpios, na.rm = TRUE)
                 max_col <- max(valores_limpios, na.rm = TRUE)
@@ -246,23 +218,6 @@ rt_tabla <- function (
         )
       }
 
-      if (col %in% destacar_col) {
-        return(
-          reactable::colDef(
-            name = titulos[[col]] %||% col,
-            class = class_col,
-            align = "center",
-            style = list(
-              background = color_destacar,
-              fontWeight = "normal",
-              fontFamily = "Arial",
-              fontSize = "14px"
-            ),
-            format = reactable::colFormat(separators = TRUE, digits = 0, locale = "es")
-          )
-        )
-      }
-
       if (is.numeric(df[[col]])) {
         return(
           reactable::colDef(
@@ -270,17 +225,12 @@ rt_tabla <- function (
             class = class_col,
             align = "center",
             style = estilo_base,
-            format = reactable::colFormat(separators = TRUE, digits = 0, locale = "es")
+            format = reactable::colFormat(separators = TRUE, digits = decimales, locale = "es")
           )
         )
       }
 
-      reactable::colDef(
-        name = titulos[[col]] %||% col,
-        class = class_col,
-        align = "center",
-        style = estilo_base
-      )
+      reactable::colDef(name = titulos[[col]] %||% col, class = class_col, align = "center", style = estilo_base)
     })
   })
 
