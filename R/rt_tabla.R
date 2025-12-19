@@ -52,6 +52,7 @@ rt_tabla <- function (df, fijas = NULL, grupos = NULL, titulos = NULL, filtrar =
         background-color: #191970 !important;
         color: white !important;
       }
+
       .rt-tr:hover .rt-td.col-fija {
         background-color: #191970 !important;
       }
@@ -103,40 +104,6 @@ rt_tabla <- function (df, fijas = NULL, grupos = NULL, titulos = NULL, filtrar =
       }
     ", highlight_color, highlight_color)
       )
-    ),
-    htmltools::tags$script(
-      htmltools::HTML("
-      document.addEventListener('DOMContentLoaded', function() {
-        const tables = document.querySelectorAll('.reactable');
-
-        tables.forEach(table => {
-          const inners = table.querySelectorAll('.rt-td-inner');
-
-          inners.forEach(inner => {
-            const cell = inner.closest('.rt-td');
-            if (!cell) return;
-
-            const colClass = Array.from(cell.classList)
-              .find(cl => cl.startsWith('col-'));
-
-            if (cell.classList.contains('col-fija')) return;
-            if (!colClass) return;
-
-            inner.addEventListener('mouseenter', () => {
-              table.querySelectorAll('.' + colClass)
-                .forEach(td => td.classList.add('column-hover'));
-              cell.classList.add('cell-hover');
-            });
-
-            inner.addEventListener('mouseleave', () => {
-              table.querySelectorAll('.column-hover')
-                .forEach(td => td.classList.remove('column-hover'));
-              cell.classList.remove('cell-hover');
-            });
-          });
-        });
-      });
-    ")
     )
   )
   
@@ -151,12 +118,6 @@ rt_tabla <- function (df, fijas = NULL, grupos = NULL, titulos = NULL, filtrar =
     local({
       col <- colname
       class_col <- paste0("col-", gsub("\\s+", "_", col))
-      estilo_base <- list(
-        fontFamily = "Arial",
-        fontSize = "14px",
-        fontWeight = "normal",
-        textAlign = "center"
-      )
       
       if (col %in% fijas) {
         return(
@@ -164,108 +125,68 @@ rt_tabla <- function (df, fijas = NULL, grupos = NULL, titulos = NULL, filtrar =
             name = titulos[[col]] %||% col,
             sticky = "left",
             align = "left",
-            class = paste(class_col, "col-fija"),
-            headerStyle = list(
-              background = "#191970",
-              color = "white",
-              fontWeight = "bold",
-              fontFamily = "Arial",
-              textAlign = "center"
-            ),
-            style = list(
-              background = "#191970",
-              color = "white",
-              fontFamily = "Arial",
-              fontSize = "14px",
-              fontWeight = "bold",
-              borderRight = "2px solid white"
-            )
+            class = paste(class_col, "col-fija")
           )
         )
       }
       
       if (col %in% barras) {
         valores_limpios <- clean_numeric(df[[col]])
+        
+        escala <- if (decimales > 0) 100 else 1
+        valores_barra <- valores_limpios * escala
+        
         pal <- if (length(color_barra) == 5) color_barra else rep("#ccc", 5)
         es_pct <- col %in% cols_porcentaje
-        is_dest_col <- col %in% destacar_col
         
         return(
           reactable::colDef(
             name = titulos[[col]] %||% col,
             class = class_col,
-            align = "center",
             html = TRUE,
-            sortable = TRUE,
-            style = if (is_dest_col)
-              list(background = color_destacar, fontFamily = "Arial", fontSize = "14px")
-            else estilo_base,
+            align = "center",
             cell = function(value, index) {
-              val_num_raw <- clean_numeric(df[[col]][index])
-val_num <- if (decimales > 0) val_num_raw * 100 else val_num_raw
-
               
-              if (!is.finite(val_num)) {
+              val_raw <- clean_numeric(df[[col]][index])
+              val_barra <- val_raw * escala
+              
+              if (!is.finite(val_barra)) {
                 displayed <- ""
                 prop <- 0
+                grp <- 1
               } else {
                 displayed <- if (es_pct) {
-                  paste0(
-                    formatC(val_num * 100, format = "f",
-                            digits = decimales, decimal.mark = ","),
-                    "%"
-                  )
+                  paste0(formatC(val_raw * 100, format = "f",
+                                 digits = decimales, decimal.mark = ","), "%")
                 } else {
-                  formatC(val_num, format = "f",
+                  formatC(val_raw, format = "f",
                           digits = decimales,
                           big.mark = ".", decimal.mark = ",")
                 }
                 
-                min_col <- min(valores_limpios, na.rm = TRUE)
-                max_col <- max(valores_limpios, na.rm = TRUE)
-                qs <- quantile(valores_limpios, probs = seq(0, 1, length.out = 6), na.rm = TRUE)
-                grp <- findInterval(val_num, qs, all.inside = TRUE)
+                min_col <- min(valores_barra, na.rm = TRUE)
+                max_col <- max(valores_barra, na.rm = TRUE)
                 
-                if (es_pct) {
-                  prop <- min(val_num, 1)
+                if (max_col - min_col == 0) {
+                  prop <- 1
                 } else {
-                  prop <- if (max_col - min_col == 0) 1 else (val_num - min_col) / (max_col - min_col)
+                  prop <- (val_barra - min_col) / (max_col - min_col)
                   prop <- max(min(prop, 1), 0)
                 }
+                
+                qs <- quantile(valores_barra, probs = seq(0, 1, length.out = 6), na.rm = TRUE)
+                grp <- findInterval(val_barra, qs, all.inside = TRUE)
               }
               
               htmltools::HTML(sprintf("
               <div style='display:flex;align-items:center;gap:6px;'>
-                <div class='barra-label' style='min-width:45px;text-align:right;font-family:Arial;font-size:14px;'>%s</div>
-                <div class='barra-outer' style='flex-grow:1;height:14px;background:%s;overflow:hidden;'>
+                <div class='barra-label' style='min-width:45px;text-align:right;'>%s</div>
+                <div class='barra-outer' style='flex-grow:1;height:14px;background:#f0f0f0;'>
                   <div style='height:100%%;width:%s%%;background:%s;'></div>
                 </div>
               </div>
-              ", displayed,
-              if (is_dest_col) "transparent" else "#f0f0f0",
-              prop * 100,
-              pal[grp]))
+              ", displayed, prop * 100, pal[grp]))
             }
-          )
-        )
-      }
-      
-      if (col %in% destacar_col) {
-        return(
-          reactable::colDef(
-            name = titulos[[col]] %||% col,
-            class = class_col,
-            align = "center",
-            style = list(
-              background = color_destacar,
-              fontFamily = "Arial",
-              fontSize = "14px"
-            ),
-            format = reactable::colFormat(
-              separators = TRUE,
-              digits = decimales,
-              locale = "es"
-            )
           )
         )
       }
@@ -274,9 +195,7 @@ val_num <- if (decimales > 0) val_num_raw * 100 else val_num_raw
         return(
           reactable::colDef(
             name = titulos[[col]] %||% col,
-            class = class_col,
             align = "center",
-            style = estilo_base,
             format = reactable::colFormat(
               separators = TRUE,
               digits = decimales,
@@ -288,50 +207,20 @@ val_num <- if (decimales > 0) val_num_raw * 100 else val_num_raw
       
       reactable::colDef(
         name = titulos[[col]] %||% col,
-        class = class_col,
-        align = "center",
-        style = estilo_base
+        align = "center"
       )
     })
   })
   
   names(columnas) <- names(df)
   
-  fila_style_fun <- function(i) {
-    if (!is.null(destacar_row) && df[[1]][i] %in% destacar_row)
-      return(list(background = color_destacar, fontWeight = "bold"))
-    list()
-  }
-  
-  columnGroups <- NULL
-  if (!is.null(grupos)) {
-    columnGroups <- lapply(names(grupos), function(g)
-      reactable::colGroup(name = g, columns = grupos[[g]]))
-  }
-  
   tbl <- reactable::reactable(
     df,
     columns = columnas,
-    columnGroups = columnGroups,
-    rowStyle = fila_style_fun,
-    highlight = TRUE,
     searchable = filtrar,
     striped = TRUE,
     bordered = TRUE,
-    pagination = FALSE,
-    language = reactable::reactableLang(searchPlaceholder = "Filtrar"),
-    defaultColDef = reactable::colDef(
-      align = "center",
-      html = TRUE,
-      headerStyle = list(
-        background = "#191970",
-        color = "white",
-        fontWeight = "bold",
-        fontFamily = "Arial",
-        textAlign = "center"
-      )
-    ),
-    style = list(fontFamily = "Arial", fontSize = "14px")
+    pagination = FALSE
   )
   
   htmltools::browsable(htmltools::tagList(css_js, tbl))
