@@ -94,6 +94,28 @@ rt_tabla <- function (df, fijas = NULL, grupos = NULL, titulos = NULL, filtrar =
         border: 1px solid #d0d0d0 !important;
         border-radius: 4px !important;
       }
+
+
+
+/* Centrado vertical SOLO para celdas sin barras */
+.rt-td:not(.col-fija):not(:has(.barra-outer)) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Columna fija: centrado vertical pero alineada a la izquierda */
+.rt-td.col-fija {
+  display: flex;
+  align-items: center;
+}
+
+.rt-td.col-fija .rt-td-inner {
+  text-align: left !important;
+}
+
+
+
       ", highlight_color, highlight_color))
     ),
 
