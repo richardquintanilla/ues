@@ -114,6 +114,11 @@ rt_tabla <- function (df, fijas = NULL, grupos = NULL, titulos = NULL, filtrar =
   text-align: left !important;
 }
 
+/* Centrado vertical del contenido de barras */
+.rt-td .barra-outer,
+.rt-td .barra-label {
+  align-self: center;
+}
 
 
       ", highlight_color, highlight_color))
