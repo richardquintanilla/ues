@@ -65,17 +65,19 @@ rt_tabla <- function (
 }
 
 
-/* Centrado vertical de TODAS las celdas */
+/* Centrado vertical y horizontal de las celdas */
 .reactable .rt-td-inner {
   display: flex;
-  align-items: center;   /* CENTRADO VERTICAL */
-  height: 100%%;
+  align-items: center;        /* vertical */
+  justify-content: center;    /* horizontal */
+  height: 100%;
 }
 
-/* Mantener alineación horizontal existente */
-.reactable .rt-td-inner {
-  justify-content: inherit;
+/* Columnas alineadas a la izquierda (fijas) */
+.reactable .rt-td.col-fija .rt-td-inner {
+  justify-content: flex-start;
 }
+
 
 
         .reactable .rt-tr:hover .rt-td:not(.col-fija) {
