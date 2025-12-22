@@ -53,7 +53,6 @@ rt_tabla <- function (
   fijas <- intersect(fijas %||% character(0), names(df))
 
   css_js <- htmltools::tagList(
-
     htmltools::tags$style(
       htmltools::HTML(sprintf("
 
@@ -221,6 +220,8 @@ rt_tabla <- function (
         digs <- get_decimales(col)
         is_dest_col <- col %in% destacar_col
 
+        qs <- quantile(valores_limpios, probs = seq(0, 1, length.out = 6), na.rm = TRUE)
+
         return(
           reactable::colDef(
             name = titulos[[col]] %||% col,
@@ -244,6 +245,7 @@ rt_tabla <- function (
               if (!is.finite(val_num)) {
                 displayed <- ""
                 prop <- 0
+                grp <- 1
               } else {
 
                 displayed <- if (es_pct) {
@@ -271,7 +273,11 @@ rt_tabla <- function (
                 } else {
                   prop <- (val_num - min_col) / (max_col - min_col)
                 }
+
+                grp <- findInterval(val_num, qs, all.inside = TRUE)
               }
+
+              color_fill <- pal[grp]
 
               htmltools::HTML(sprintf("
                 <div style='display:flex;align-items:center;gap:6px;'>
@@ -280,16 +286,13 @@ rt_tabla <- function (
                     <div style='height:100%%;width:%s%%;background:%s;'></div>
                   </div>
                 </div>
-              ", displayed, prop * 100, pal[3]))
+              ", displayed, prop * 100, color_fill))
             }
           )
         )
       }
 
       if (col %in% destacar_col) {
-
-        es_pct <- col %in% cols_porcentaje
-        digs <- get_decimales(col)
 
         return(
           reactable::colDef(
@@ -302,16 +305,16 @@ rt_tabla <- function (
               fontFamily = "Arial",
               fontSize = "14px"
             ),
-            format = if (es_pct)
+            format = if (col %in% cols_porcentaje)
               reactable::colFormat(
                 percent = TRUE,
-                digits = digs,
+                digits = get_decimales(col),
                 locale = "es"
               )
             else
               reactable::colFormat(
                 separators = TRUE,
-                digits = digs,
+                digits = get_decimales(col),
                 locale = "es"
               )
           )
