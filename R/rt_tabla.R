@@ -69,7 +69,7 @@ rt_tabla <- function (
 .reactable .rt-td-inner {
   display: flex;
   align-items: center;   /* CENTRADO VERTICAL */
-  height: 100%;
+  height: 100%%;
 }
 
 /* Mantener alineación horizontal existente */
