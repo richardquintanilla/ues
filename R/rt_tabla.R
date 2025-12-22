@@ -70,7 +70,7 @@ rt_tabla <- function (
   display: flex;
   align-items: center;        /* vertical */
   justify-content: center;    /* horizontal */
-  height: 100%;
+  height: 100%%;
 }
 
 /* Columnas alineadas a la izquierda (fijas) */
