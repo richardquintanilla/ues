@@ -53,6 +53,8 @@ rt_tabla <- function (
   fijas <- intersect(fijas %||% character(0), names(df))
 
   css_js <- htmltools::tagList(
+
+    ## ---------- CSS (IGUAL AL TUYO) ----------
     htmltools::tags$style(
       htmltools::HTML(sprintf("
 
@@ -130,6 +132,42 @@ rt_tabla <- function (
 }
 
 ", highlight_color, highlight_color))
+    ),
+
+    ## ---------- JS (RESTAURADO: highlight cruz) ----------
+    htmltools::tags$script(
+      htmltools::HTML("
+        document.addEventListener('DOMContentLoaded', function() {
+          const tables = document.querySelectorAll('.reactable');
+
+          tables.forEach(table => {
+            const inners = table.querySelectorAll('.rt-td-inner');
+
+            inners.forEach(inner => {
+              const cell = inner.closest('.rt-td');
+              if (!cell) return;
+
+              const colClass = Array.from(cell.classList)
+                .find(cl => cl.startsWith('col-'));
+
+              if (cell.classList.contains('col-fija')) return;
+              if (!colClass) return;
+
+              inner.addEventListener('mouseenter', () => {
+                table.querySelectorAll('.' + colClass)
+                  .forEach(td => td.classList.add('column-hover'));
+                cell.classList.add('cell-hover');
+              });
+
+              inner.addEventListener('mouseleave', () => {
+                table.querySelectorAll('.column-hover')
+                  .forEach(td => td.classList.remove('column-hover'));
+                cell.classList.remove('cell-hover');
+              });
+            });
+          });
+        });
+      ")
     )
   )
 
@@ -237,17 +275,14 @@ rt_tabla <- function (
                 }
               }
 
-              color_fill <- pal[3]
-              fondo <- if (is_dest_col) "transparent" else "#f0f0f0"
-
               htmltools::HTML(sprintf("
                 <div style='display:flex;align-items:center;gap:6px;'>
                   <div class='barra-label' style='min-width:45px;text-align:right;font-family:Arial;font-size:14px;'>%s</div>
-                  <div class='barra-outer' style='flex-grow:1;height:14px;background:%s;overflow:hidden;'>
+                  <div class='barra-outer' style='flex-grow:1;height:14px;background:#f0f0f0;overflow:hidden;'>
                     <div style='height:100%%;width:%s%%;background:%s;'></div>
                   </div>
                 </div>
-              ", displayed, fondo, prop * 100, color_fill))
+              ", displayed, prop * 100, pal[3]))
             }
           )
         )
