@@ -53,6 +53,7 @@ rt_tabla <- function (
   fijas <- intersect(fijas %||% character(0), names(df))
 
   css_js <- htmltools::tagList(
+
     htmltools::tags$style(
       htmltools::HTML(sprintf("
 
@@ -220,8 +221,6 @@ rt_tabla <- function (
         digs <- get_decimales(col)
         is_dest_col <- col %in% destacar_col
 
-        qs <- quantile(valores_limpios, probs = seq(0, 1, length.out = 6), na.rm = TRUE)
-
         return(
           reactable::colDef(
             name = titulos[[col]] %||% col,
@@ -245,7 +244,7 @@ rt_tabla <- function (
               if (!is.finite(val_num)) {
                 displayed <- ""
                 prop <- 0
-                grp <- 1
+                color_fill <- pal[1]
               } else {
 
                 displayed <- if (es_pct) {
@@ -268,16 +267,18 @@ rt_tabla <- function (
 
                 if (es_pct) {
                   prop <- min(val_num, 1)
+                  qs <- seq(0, 1, length.out = 6)
                 } else if (max_col - min_col == 0) {
                   prop <- 1
+                  qs <- seq(0, 1, length.out = 6)
                 } else {
                   prop <- (val_num - min_col) / (max_col - min_col)
+                  qs <- quantile(valores_limpios, probs = seq(0, 1, length.out = 6), na.rm = TRUE)
                 }
 
                 grp <- findInterval(val_num, qs, all.inside = TRUE)
+                color_fill <- pal[grp]
               }
-
-              color_fill <- pal[grp]
 
               htmltools::HTML(sprintf("
                 <div style='display:flex;align-items:center;gap:6px;'>
@@ -293,7 +294,6 @@ rt_tabla <- function (
       }
 
       if (col %in% destacar_col) {
-
         return(
           reactable::colDef(
             name = titulos[[col]] %||% col,
