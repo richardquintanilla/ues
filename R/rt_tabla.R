@@ -65,6 +65,17 @@ rt_tabla <- function (
 }
 
 
+/* Centrado vertical de TODAS las celdas */
+.reactable .rt-td-inner {
+  display: flex;
+  align-items: center;   /* CENTRADO VERTICAL */
+  height: 100%;
+}
+
+/* Mantener alineación horizontal existente */
+.reactable .rt-td-inner {
+  justify-content: inherit;
+}
 
 
         .reactable .rt-tr:hover .rt-td:not(.col-fija) {
