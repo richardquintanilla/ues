@@ -47,6 +47,26 @@ rt_tabla <- function (
   css_js <- htmltools::tagList(
     htmltools::tags$style(
       htmltools::HTML(sprintf("
+
+
+.reactable .rt-th,
+.reactable .rt-th-group {
+  display: flex !important;
+  align-items: center !important;   /* CENTRADO VERTICAL */
+  justify-content: center !important; /* CENTRADO HORIZONTAL */
+  text-align: center !important;
+}
+
+/* Mantener columnas fijas alineadas a la izquierda */
+.reactable .rt-th.col-fija {
+  justify-content: flex-start !important;
+  text-align: left !important;
+  padding-left: 8px;
+}
+
+
+
+
         .reactable .rt-tr:hover .rt-td:not(.col-fija) {
           background-color: %s !important;
         }
