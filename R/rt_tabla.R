@@ -65,20 +65,18 @@ rt_tabla <- function (
 }
 
 
-/* Centrado vertical y horizontal de las celdas */
-.reactable .rt-td-inner {
+/* Centrado vertical y horizontal SOLO en celdas SIN barras */
+.reactable .rt-td-inner:not(:has(.barra-outer)) {
   display: flex;
   align-items: center;        /* vertical */
   justify-content: center;    /* horizontal */
-  height: 100%%;
+  height: 100%;
 }
 
-/* Columnas alineadas a la izquierda (fijas) */
+/* Columnas fijas: alineadas a la izquierda */
 .reactable .rt-td.col-fija .rt-td-inner {
-  justify-content: flex-start;
+  justify-content: flex-start !important;
 }
-
-
 
         .reactable .rt-tr:hover .rt-td:not(.col-fija) {
           background-color: %s !important;
