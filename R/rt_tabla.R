@@ -54,7 +54,6 @@ rt_tabla <- function (
 
   css_js <- htmltools::tagList(
 
-    ## ---------- CSS (IGUAL AL TUYO) ----------
     htmltools::tags$style(
       htmltools::HTML(sprintf("
 
@@ -134,7 +133,6 @@ rt_tabla <- function (
 ", highlight_color, highlight_color))
     ),
 
-    ## ---------- JS (RESTAURADO: highlight cruz) ----------
     htmltools::tags$script(
       htmltools::HTML("
         document.addEventListener('DOMContentLoaded', function() {
@@ -289,6 +287,10 @@ rt_tabla <- function (
       }
 
       if (col %in% destacar_col) {
+
+        es_pct <- col %in% cols_porcentaje
+        digs <- get_decimales(col)
+
         return(
           reactable::colDef(
             name = titulos[[col]] %||% col,
@@ -300,11 +302,18 @@ rt_tabla <- function (
               fontFamily = "Arial",
               fontSize = "14px"
             ),
-            format = reactable::colFormat(
-              separators = TRUE,
-              digits = get_decimales(col),
-              locale = "es"
-            )
+            format = if (es_pct)
+              reactable::colFormat(
+                percent = TRUE,
+                digits = digs,
+                locale = "es"
+              )
+            else
+              reactable::colFormat(
+                separators = TRUE,
+                digits = digs,
+                locale = "es"
+              )
           )
         )
       }
