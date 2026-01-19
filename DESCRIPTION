@@ -1,29 +1,36 @@
 Package: ues
-Title: Funciones Utiles para Tablas y Reportes
+Title: Funciones para Tablas y Reportes
 Version: 0.0.1
 Authors@R: 
     person(
         given = "Richard",
         family = "Quintanilla",
-        email = "mail@dominio.cl",
+        email = "tu.correo@dominio.cl",
         role = c("aut", "cre")
     )
 Description: Colección de funciones internas utilizadas para generar tablas,
     consolidar datos y automatizar reportes institucionales.
 License: MIT + file LICENSE
 Encoding: UTF-8
+LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-Imports:
-    reactable (>= 0.4.4),
-    reactablefmtr (>= 2.0.0),
-    dplyr,
-    scales,
-    grDevices,
-    lubridate,
-    htmltools
-URL: https://github.com/richardquintanilla/ues
-BugReports: https://github.com/richardquintanilla/ues/issues
+
 Depends: 
     R (>= 3.5)
-LazyData: true
+
+Imports:
+    dplyr,
+    ggplot2,
+    plotly,
+    sf,
+    glue,
+    reactable (>= 0.4.4),
+    reactablefmtr (>= 2.0.0),
+    scales,
+    grDevices,
+    htmltools,
+    grid
+
+URL: https://github.com/richardquintanilla/ues
+BugReports: https://github.com/richardquintanilla/ues/issues
