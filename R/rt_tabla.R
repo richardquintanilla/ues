@@ -169,6 +169,10 @@ rt_tabla <- function (
     )
   )
 
+  font_family_base <- "sans-serif"
+  font_size_base   <- "13px"
+
+
   clean_numeric <- function(x) {
     if (is.numeric(x)) return(as.numeric(x))
     xch <- gsub("(?<=\\d)\\.(?=\\d{3}(?:\\D|$))", "", trimws(as.character(x)), perl = TRUE)
@@ -181,11 +185,11 @@ rt_tabla <- function (
       col <- colname
       class_col <- paste0("col-", gsub("\\s+", "_", col))
       estilo_base <- list(
-        fontFamily = "Arial",
-        fontSize = "14px",
-        fontWeight = "normal",
-        textAlign = "center"
-      )
+  fontFamily = font_family_base,
+  fontSize = font_size_base,
+  fontWeight = "normal",
+  textAlign = "center"
+)
 
       if (col %in% fijas) {
         return(
@@ -198,14 +202,14 @@ rt_tabla <- function (
               background = "#191970",
               color = "white",
               fontWeight = "bold",
-              fontFamily = "Arial",
+              fontFamily = font_family_base,
               textAlign = "center"
             ),
             style = list(
               background = "#191970",
               color = "white",
-              fontFamily = "Arial",
-              fontSize = "14px",
+              fontFamily = font_family_base,
+              fontSize = font_size_base,
               fontWeight = "bold",
               borderRight = "2px solid white"
             )
@@ -232,8 +236,8 @@ rt_tabla <- function (
               list(
                 background = color_destacar,
                 fontWeight = "normal",
-                fontFamily = "Arial",
-                fontSize = "14px"
+                fontFamily = font_family_base,
+                fontSize = font_size_base
               )
             else estilo_base,
 
@@ -282,7 +286,7 @@ rt_tabla <- function (
 
               htmltools::HTML(sprintf("
                 <div style='display:flex;align-items:center;gap:6px;'>
-                  <div class='barra-label' style='min-width:45px;text-align:right;font-family:Arial;font-size:14px;'>%s</div>
+                  <div class='barra-label' style='min-width:45px;text-align:right;font-family:sans-serif;font-size:13px;'>%s</div>
                   <div class='barra-outer' style='flex-grow:1;height:14px;background:#f0f0f0;overflow:hidden;'>
                     <div style='height:100%%;width:%s%%;background:%s;'></div>
                   </div>
@@ -302,8 +306,8 @@ rt_tabla <- function (
             style = list(
               background = color_destacar,
               fontWeight = "normal",
-              fontFamily = "Arial",
-              fontSize = "14px"
+              fontFamily = font_family_base,
+              fontSize = font_size_base
             ),
             format = if (col %in% cols_porcentaje)
               reactable::colFormat(
@@ -391,10 +395,10 @@ rt_tabla <- function (
         background = "#191970",
         color = "white",
         fontWeight = "bold",
-        fontFamily = "Arial",
+        fontFamily = font_family_base,
         textAlign = "center"
       ),
-      style = list(fontFamily = "Arial", fontSize = "14px")
+      style = list(fontFamily = font_family_base, fontSize = font_size_base)
     )
   )
 
