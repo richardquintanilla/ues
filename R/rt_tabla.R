@@ -57,6 +57,11 @@ rt_tabla <- function (
     htmltools::tags$style(
       htmltools::HTML(sprintf("
 
+.reactable {
+  font-family: sans-serif !important;
+  font-size: 13px !important;
+}
+
 .reactable .rt-th,
 .reactable .rt-th-group {
   display: flex !important;
@@ -122,7 +127,7 @@ rt_tabla <- function (
   color: white !important;
   font-weight: bold !important;
   text-align: center !important;
-  font-family: Arial !important;
+  font-family: inherit !important;
 }
 
 .barra-outer {
