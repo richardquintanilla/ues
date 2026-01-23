@@ -75,10 +75,6 @@ estandarizar_territorio <- function(
       )
     )
 
-  # --- tablas base
-  cut_base <- ues::poblacion_ine %>%
-    dplyr::distinct(codigo_comuna, nombre_comuna)
-
   cod_cpr <- ues::poblacion_ine %>%
     dplyr::distinct(
       codigo_comuna,
@@ -89,7 +85,7 @@ estandarizar_territorio <- function(
 
   # --- agregar nombre de comuna
   df <- df %>%
-    dplyr::left_join(cut_base, by = "codigo_comuna")
+    dplyr::left_join(ues::cut, by = "codigo_comuna")
 
   # --- actualizar nombre de comuna si corresponde
   if ("nombre_comuna" %in% names(df)) {
