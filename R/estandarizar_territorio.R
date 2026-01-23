@@ -9,8 +9,8 @@
 #' actualiza nombres de comuna usando \code{cut_actual}.
 #'
 #' @param df Un data frame o tibble.
-#' @param comuna Variable que identifica la comuna (generalmente el código
-#'   de comuna). Se pasa sin comillas.
+#' @param codigo_comuna Variable que identifica el código de comuna.
+#' Se pasa sin comillas.
 #' @param agregar Vector de caracteres indicando qué niveles territoriales
 #'   agregar. Puede incluir uno o más de: \code{"comuna"},
 #'   \code{"provincia"}, \code{"region"}. Por defecto agrega todos.
@@ -48,7 +48,7 @@
 #' @export
 estandarizar_territorio <- function(
   df,
-  comuna,
+  codigo_comuna,
   agregar = c("comuna", "provincia", "region")
 ) {
 
@@ -58,7 +58,7 @@ estandarizar_territorio <- function(
     several.ok = TRUE
   )
 
-  comuna_sym  <- rlang::ensym(comuna)
+  comuna_sym  <- rlang::ensym(codigo_comuna)
   comuna_name <- rlang::as_string(comuna_sym)
 
   # --- renombrar variable de comuna si es necesario
