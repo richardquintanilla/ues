@@ -1,29 +1,35 @@
 #' Estandarizar comuna y agregar jerarquía territorial
 #'
-#' Estandariza el código y nombre de la comuna a partir de una variable de
-#' comuna existente en el data frame, y permite agregar información de
-#' provincia y región según corresponda.
+#' Estandariza el código de comuna y agrega nombres oficiales de comuna,
+#' provincia y región a partir de una variable existente en el data frame.
 #'
-#' La función renombra internamente la variable de comuna a
-#' \code{codigo_comuna}, actualiza los nombres de comuna usando
-#' \code{cut_actual}, y cruza la jerarquía territorial desde
-#' \code{poblacion_ine}.
+#' La función renombra internamente la variable indicada a
+#' \code{codigo_comuna}, elimina columnas territoriales previas si existen,
+#' y cruza información oficial desde \code{poblacion_ine}. Cuando es posible,
+#' actualiza nombres de comuna usando \code{cut_actual}.
 #'
 #' @param df Un data frame o tibble.
-#' @param comuna Variable que identifica la comuna (generalmente el código de comuna).
-#'   Se pasa sin comillas.
-#' @param agregar Caracter vector indicando qué niveles territoriales agregar.
-#'   Puede incluir uno o más de: \code{"comuna"}, \code{"provincia"},
-#'   \code{"region"}. Por defecto agrega todos.
+#' @param comuna Variable que identifica la comuna (generalmente el código
+#'   de comuna). Se pasa sin comillas.
+#' @param agregar Vector de caracteres indicando qué niveles territoriales
+#'   agregar. Puede incluir uno o más de: \code{"comuna"},
+#'   \code{"provincia"}, \code{"region"}. Por defecto agrega todos.
 #'
-#' @return Un data frame con las columnas territoriales estandarizadas.
+#' @return Un data frame con columnas territoriales estandarizadas según
+#'   lo indicado en \code{agregar}.
 #'
 #' @details
 #' La función elimina cualquier columna previa llamada
 #' \code{nombre_comuna}, \code{nombre_provincia} o \code{nombre_region}
 #' antes de realizar los cruces, para evitar duplicaciones.
 #'
-#' @seealso \code{\link{poblacion_ine}}, \code{\link{cut_actual}}
+#' Los cruces y actualizaciones de nombres se realizan únicamente cuando
+#' las columnas necesarias están disponibles, evitando errores por ausencia
+#' de variables.
+#'
+#' @seealso
+#' \code{\link{poblacion_ine}},
+#' \code{\link{cut_actual}}
 #'
 #' @examples
 #' \dontrun{
@@ -31,9 +37,14 @@
 #'   estandarizar_territorio(codigo_comuna)
 #'
 #' nac %>%
-#'   estandarizar_territorio(codigo_comuna, agregar = c("comuna", "region"))
+#'   estandarizar_territorio(
+#'     codigo_comuna,
+#'     agregar = c("comuna", "region")
+#'   )
 #' }
 #'
+#' @importFrom rlang ensym as_string
+#' @importFrom dplyr rename select any_of distinct left_join mutate coalesce
 #' @export
 estandarizar_territorio <- function(
   df,
@@ -65,10 +76,10 @@ estandarizar_territorio <- function(
     )
 
   # --- tablas base
-  cut <- ues::poblacion_ine %>%
+  cut_base <- poblacion_ine %>%
     dplyr::distinct(codigo_comuna, nombre_comuna)
 
-  cod_cpr <- ues::poblacion_ine %>%
+  cod_cpr <- poblacion_ine %>%
     dplyr::distinct(
       codigo_comuna,
       nombre_comuna,
@@ -76,24 +87,37 @@ estandarizar_territorio <- function(
       nombre_region
     )
 
-  # --- estandarizar nombre de comuna
+  # --- agregar nombre de comuna
   df <- df %>%
-    dplyr::left_join(ues::cut, by = "codigo_comuna") %>%
-    dplyr::left_join(
-      ues::cut_actual,
-      by = "nombre_comuna",
-      suffix = c("_old", "")
-    ) %>%
-    dplyr::mutate(
-      nombre_comuna = dplyr::coalesce(nombre_comuna, nombre_comuna_old)
-    ) %>%
-    dplyr::select(-nombre_comuna_old)
+    dplyr::left_join(cut_base, by = "codigo_comuna")
 
-  # --- agregar jerarquía territorial
+  # --- actualizar nombre de comuna si corresponde
+  if ("nombre_comuna" %in% names(df)) {
+
+    df <- df %>%
+      dplyr::left_join(
+        cut_actual,
+        by = "nombre_comuna",
+        suffix = c("_old", "")
+      )
+
+    if ("nombre_comuna_old" %in% names(df)) {
+      df <- df %>%
+        dplyr::mutate(
+          nombre_comuna = dplyr::coalesce(
+            .data$nombre_comuna,
+            .data$nombre_comuna_old
+          )
+        ) %>%
+        dplyr::select(-nombre_comuna_old)
+    }
+  }
+
+  # --- agregar provincia y región
   df <- df %>%
     dplyr::left_join(
       cod_cpr,
-      by = "codigo_comuna"
+      by = c("codigo_comuna", "nombre_comuna")
     )
 
   # --- filtrar columnas según 'agregar'
