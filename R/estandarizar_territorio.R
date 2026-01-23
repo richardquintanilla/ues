@@ -76,10 +76,10 @@ estandarizar_territorio <- function(
     )
 
   # --- tablas base
-  cut_base <- poblacion_ine %>%
+  cut_base <- ues::poblacion_ine %>%
     dplyr::distinct(codigo_comuna, nombre_comuna)
 
-  cod_cpr <- poblacion_ine %>%
+  cod_cpr <- ues::poblacion_ine %>%
     dplyr::distinct(
       codigo_comuna,
       nombre_comuna,
@@ -96,7 +96,7 @@ estandarizar_territorio <- function(
 
     df <- df %>%
       dplyr::left_join(
-        cut_actual,
+        ues::cut_actual,
         by = "nombre_comuna",
         suffix = c("_old", "")
       )
