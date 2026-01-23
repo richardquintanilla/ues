@@ -78,7 +78,7 @@ estandarizar_territorio <- function(
 
   # --- estandarizar nombre de comuna
   df <- df %>%
-    dplyr::left_join(cut, by = "codigo_comuna") %>%
+    dplyr::left_join(ues::cut, by = "codigo_comuna") %>%
     dplyr::left_join(
       ues::cut_actual,
       by = "nombre_comuna",
