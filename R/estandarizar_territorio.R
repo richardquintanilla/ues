@@ -10,6 +10,9 @@
 #' \code{ues::poblacion_ine}. Cuando es posible, actualiza nombres de comuna
 #' usando \code{ues::cut_actual}.
 #'
+#' Si el código de comuna es \code{"99999"}, los nombres de comuna, provincia
+#' y región se asignan explícitamente como \code{"Ignorada"}.
+#'
 #' @param df Un data frame o tibble.
 #' @param codigo_comuna Variable que identifica el código de comuna.
 #'   Se pasa sin comillas.
@@ -19,32 +22,6 @@
 #'
 #' @return Un data frame con columnas territoriales estandarizadas según
 #'   lo indicado en \code{agregar}.
-#'
-#' @details
-#' La función elimina cualquier columna previa llamada
-#' \code{nombre_comuna}, \code{nombre_provincia} o \code{nombre_region}
-#' antes de realizar los cruces, para evitar duplicaciones.
-#'
-#' Los cruces y actualizaciones de nombres se realizan únicamente cuando
-#' las columnas necesarias están disponibles, evitando errores por ausencia
-#' de variables.
-#'
-#' @seealso
-#' \code{\link{cut}},
-#' \code{\link{cut_actual}},
-#' \code{\link{poblacion_ine}}
-#'
-#' @examples
-#' \dontrun{
-#' nac %>%
-#'   estandarizar_territorio(codigo_comuna)
-#'
-#' nac %>%
-#'   estandarizar_territorio(
-#'     codigo_comuna,
-#'     agregar = c("comuna", "region")
-#'   )
-#' }
 #'
 #' @importFrom rlang ensym as_string
 #' @importFrom dplyr rename select any_of distinct left_join mutate coalesce
@@ -78,7 +55,7 @@ estandarizar_territorio <- function(
       )
     )
 
-  # --- agregar nombre oficial de comuna (fuente canónica)
+  # --- agregar nombre oficial de comuna
   df <- df %>%
     dplyr::left_join(
       ues::cut,
@@ -118,6 +95,19 @@ estandarizar_territorio <- function(
           nombre_region
         ),
       by = c("codigo_comuna", "nombre_comuna")
+    )
+
+  # --- regla explícita: comuna ignorada (codigo 99999)
+  df <- df %>%
+    dplyr::mutate(
+      dplyr::across(
+        c("nombre_comuna", "nombre_provincia", "nombre_region"),
+        ~ dplyr::if_else(
+          codigo_comuna == "99999",
+          "Ignorada",
+          .
+        )
+      )
     )
 
   # --- filtrar columnas según 'agregar'
