@@ -3,11 +3,10 @@
 #' Estandariza un código de comuna y agrega nombres oficiales de comuna,
 #' provincia y región sin modificar la variable original del data frame.
 #'
-#' La función crea internamente una columna \code{codigo_comuna} a partir de
-#' la variable indicada, elimina columnas territoriales previas si existen,
-#' y cruza información oficial desde \code{ues::cut} y
-#' \code{ues::poblacion_ine}. Cuando es posible, actualiza nombres de comuna
-#' usando \code{ues::cut_actual}.
+#' La función crea una columna \code{codigo_comuna} a partir de la variable
+#' indicada, cruza información oficial desde \code{ues::cut} y
+#' \code{ues::poblacion_ine}, y actualiza nombres de comuna usando
+#' \code{ues::cut_actual} cuando corresponde.
 #'
 #' Si el código de comuna es \code{"99999"}, los nombres de comuna, provincia
 #' y región se asignan explícitamente como \code{"Ignorada"}.
@@ -19,18 +18,12 @@
 #'   agregar. Puede incluir uno o más de: \code{"comuna"},
 #'   \code{"provincia"}, \code{"region"}. Por defecto agrega todos.
 #'
-#' @return Un data frame con nuevas columnas territoriales estandarizadas
-#'   según lo indicado en \code{agregar}. La variable original de comuna
-#'   se conserva intacta.
+#' @return Un data frame con columnas territoriales estandarizadas según
+#'   lo indicado en \code{agregar}. La variable original se conserva intacta.
 #'
 #' @details
-#' La función elimina cualquier columna previa llamada
-#' \code{nombre_comuna}, \code{nombre_provincia} o \code{nombre_region}
-#' antes de realizar los cruces, para evitar duplicaciones.
-#'
-#' Los cruces y actualizaciones de nombres se realizan únicamente cuando
-#' las columnas necesarias están disponibles, evitando errores por ausencia
-#' de variables.
+#' La función no elimina ni renombra la variable original de comuna.
+#' Solo agrega nuevas columnas estandarizadas.
 #'
 #' @seealso
 #' \code{\link{cut}},
@@ -50,7 +43,7 @@
 #' }
 #'
 #' @importFrom rlang ensym
-#' @importFrom dplyr select any_of distinct left_join mutate coalesce
+#' @importFrom dplyr select any_of distinct left_join mutate coalesce if_else
 #' @export
 estandarizar_territorio <- function(
   df,
@@ -66,18 +59,10 @@ estandarizar_territorio <- function(
 
   comuna_sym <- rlang::ensym(codigo_comuna)
 
-  # --- crear codigo_comuna estandarizado sin tocar el original
+  # --- crear codigo_comuna estandarizado
   df <- df %>%
     dplyr::mutate(
       codigo_comuna = !!comuna_sym
-    )
-
-  # --- eliminar columnas territoriales previas si existen
-  df <- df %>%
-    dplyr::select(
-      -dplyr::any_of(
-        c("nombre_comuna", "nombre_provincia", "nombre_region")
-      )
     )
 
   # --- agregar nombre oficial de comuna
