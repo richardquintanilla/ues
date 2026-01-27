@@ -4,18 +4,18 @@
 #' comuna, provincia y región, respetando cambios de código ocurridos en
 #' el tiempo.
 #'
-#' La función **no modifica la variable original** del data frame. Crea una
+#' La función no modifica la variable original del data frame. Crea una
 #' columna de trabajo \code{codigo_comuna}, estandariza el nombre de la comuna
 #' usando \code{ues::cut}, y luego utiliza ese nombre para actualizar códigos
 #' antiguos a los códigos vigentes mediante \code{ues::cut_actual}. Finalmente,
 #' agrega la jerarquía territorial desde \code{ues::poblacion_ine}.
 #'
-#' Si el código de comuna es \code{"99999"}, los nombres de comuna, provincia
-#' y región se asignan explícitamente como \code{"Ignorada"}.
+#' Si el código de comuna es \code{"99999"}, los nombres territoriales
+#' disponibles se asignan explícitamente como \code{"Ignorada"}.
 #'
 #' @param df Un data frame o tibble.
 #' @param codigo_comuna Variable que identifica el código de comuna.
-#'   Se pasa sin comillas y **no se modifica**.
+#'   Se pasa sin comillas y no se modifica.
 #' @param agregar Vector de caracteres indicando qué niveles territoriales
 #'   agregar. Puede incluir uno o más de: \code{"comuna"},
 #'   \code{"provincia"}, \code{"region"}. Por defecto agrega todos.
@@ -23,17 +23,6 @@
 #' @return
 #' Un data frame con columnas territoriales estandarizadas según lo indicado
 #' en \code{agregar}. La variable original se conserva intacta.
-#'
-#' @details
-#' El flujo de estandarización es:
-#' \enumerate{
-#'   \item Código histórico → nombre de comuna
-#'   \item Nombre de comuna → código vigente
-#'   \item Código vigente → provincia y región
-#' }
-#'
-#' Los cruces intermedios se realizan solo cuando las columnas necesarias
-#' están disponibles, evitando errores por ausencia de variables.
 #'
 #' @seealso
 #' \code{\link{cut}},
@@ -70,20 +59,20 @@ estandarizar_territorio <- function(
 
   comuna_sym <- rlang::ensym(codigo_comuna)
 
-  # --- crear codigo_comuna de trabajo (sin tocar la original)
+  # --- crear codigo_comuna de trabajo
   df <- df %>%
     dplyr::mutate(
       codigo_comuna = !!comuna_sym
     )
 
-  # --- obtener nombre base de comuna desde código histórico
+  # --- obtener nombre base de comuna
   df <- df %>%
     dplyr::left_join(
       ues::cut,
       by = "codigo_comuna"
     )
 
-  # --- actualizar código usando nombre de comuna (si existe)
+  # --- actualizar código usando nombre de comuna
   if (
     "nombre_comuna" %in% names(df) &&
     all(c("nombre_comuna", "codigo_comuna") %in% names(ues::cut_actual))
@@ -104,7 +93,7 @@ estandarizar_territorio <- function(
       dplyr::select(-codigo_comuna_actual)
   }
 
-  # --- agregar jerarquía territorial final
+  # --- agregar jerarquía territorial
   df <- df %>%
     dplyr::left_join(
       ues::poblacion_ine %>%
@@ -117,18 +106,25 @@ estandarizar_territorio <- function(
       by = "codigo_comuna"
     )
 
-  # --- regla explícita comuna ignorada (99999)
-  df <- df %>%
-    dplyr::mutate(
-      dplyr::across(
-        c(nombre_comuna, nombre_provincia, nombre_region),
-        ~ dplyr::if_else(
-          codigo_comuna == "99999",
-          "Ignorada",
-          .
+  # --- regla comuna ignorada (solo sobre columnas existentes)
+  cols_ignorada <- intersect(
+    c("nombre_comuna", "nombre_provincia", "nombre_region"),
+    names(df)
+  )
+
+  if (length(cols_ignorada) > 0) {
+    df <- df %>%
+      dplyr::mutate(
+        dplyr::across(
+          dplyr::all_of(cols_ignorada),
+          ~ dplyr::if_else(
+            codigo_comuna == "99999",
+            "Ignorada",
+            .
+          )
         )
       )
-    )
+  }
 
   # --- filtrar columnas según 'agregar'
   columnas <- c(
