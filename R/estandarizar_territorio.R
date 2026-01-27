@@ -66,7 +66,7 @@ estandarizar_territorio <- function(
 
   comuna_sym <- rlang::ensym(codigo_comuna)
 
-  # --- crear codigo_comuna estandarizado (sin tocar el original)
+  # --- crear codigo_comuna estandarizado
   df <- df %>%
     dplyr::mutate(
       codigo_comuna = !!comuna_sym
@@ -79,14 +79,13 @@ estandarizar_territorio <- function(
       by = "codigo_comuna"
     )
 
-  # --- actualizar nombre de comuna sin crear columnas *_old
+  # --- actualizar nombre de comuna (FIX AQUÍ)
   if ("nombre_comuna" %in% names(df)) {
 
     df <- df %>%
       dplyr::left_join(
         ues::cut_actual %>%
-          dplyr::select(
-            nombre_comuna,
+          dplyr::rename(
             nombre_comuna_actual = nombre_comuna
           ),
         by = "nombre_comuna"
