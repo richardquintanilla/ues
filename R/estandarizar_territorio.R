@@ -1,8 +1,9 @@
 #' Estandarizar comuna y agregar jerarquía territorial
 #'
-#' A partir de un código de comuna, estandariza nombres oficiales de comuna,
-#' provincia y región. Si el código de comuna corresponde a una versión
-#' antigua, se actualiza al código vigente junto con su nombre oficial.
+#' A partir de un código de comuna, estandariza los nombres oficiales de
+#' comuna, provincia y región. Si una comuna ha cambiado su código en el
+#' tiempo, la actualización se realiza usando el nombre de la comuna como
+#' clave, obteniendo así el código vigente.
 #'
 #' La variable original del código de comuna **no se modifica**. La función
 #' crea una columna \code{codigo_comuna} estandarizada y agrega únicamente
@@ -19,12 +20,13 @@
 #'   lo indicado en \code{agregar}. Las variables originales se conservan.
 #'
 #' @details
-#' El flujo de la función es:
+#' El proceso de estandarización sigue estos pasos:
 #' \enumerate{
 #'   \item Crear un \code{codigo_comuna} desde la variable original.
-#'   \item Estandarizar el código y nombre de la comuna usando
-#'         \code{ues::cut_actual}.
-#'   \item Agregar provincia y región desde fuentes oficiales.
+#'   \item Obtener el nombre histórico de la comuna desde \code{ues::cut}.
+#'   \item Actualizar nombre y código de comuna usando \code{ues::cut_actual},
+#'         cruzando exclusivamente por \code{nombre_comuna}.
+#'   \item Agregar provincia y región usando el código vigente.
 #' }
 #'
 #' No se generan columnas auxiliares ni temporales en el resultado final.
@@ -57,15 +59,24 @@ estandarizar_territorio <- function(
       codigo_comuna = !!comuna_sym
     )
 
-  # --- 2. estandarizar codigo y nombre de comuna (vigente)
+  # --- 2. obtener nombre histórico de comuna
   df <- df %>%
     dplyr::left_join(
-      ues::cut_actual %>%
+      ues::cut %>%
         dplyr::select(codigo_comuna, nombre_comuna),
       by = "codigo_comuna"
     )
 
-  # --- 3. agregar provincia y región
+  # --- 3. actualizar nombre y codigo usando SOLO el nombre
+  idx <- match(df$nombre_comuna, ues::cut_actual$nombre_comuna)
+
+  df$nombre_comuna[!is.na(idx)] <-
+    ues::cut_actual$nombre_comuna[idx[!is.na(idx)]]
+
+  df$codigo_comuna[!is.na(idx)] <-
+    ues::cut_actual$codigo_comuna[idx[!is.na(idx)]]
+
+  # --- 4. agregar provincia y región con codigo vigente
   df <- df %>%
     dplyr::left_join(
       ues::poblacion_ine %>%
@@ -78,7 +89,7 @@ estandarizar_territorio <- function(
       by = c("codigo_comuna", "nombre_comuna")
     )
 
-  # --- 4. regla explícita: comuna ignorada
+  # --- 5. regla explícita: comuna ignorada
   df <- df %>%
     dplyr::mutate(
       dplyr::across(
@@ -91,7 +102,7 @@ estandarizar_territorio <- function(
       )
     )
 
-  # --- 5. devolver solo columnas solicitadas
+  # --- 6. devolver solo columnas solicitadas
   columnas <- c(
     comuna    = "nombre_comuna",
     provincia = "nombre_provincia",
