@@ -1,12 +1,14 @@
 #' Estandarizar comuna y agregar jerarquía territorial
 #'
-#' Estandariza un código de comuna y agrega nombres oficiales de comuna,
-#' provincia y región **sin modificar la variable original** del data frame.
+#' Estandariza un código de comuna histórico y agrega nombres oficiales de
+#' comuna, provincia y región, respetando cambios de código ocurridos en
+#' el tiempo.
 #'
-#' La función crea una nueva columna \code{codigo_comuna} a partir de la
-#' variable indicada, cruza información oficial desde \code{ues::cut} y
-#' \code{ues::poblacion_ine}, y actualiza nombres de comuna usando
-#' \code{ues::cut_actual} cuando corresponde.
+#' La función **no modifica la variable original** del data frame. Crea una
+#' columna de trabajo \code{codigo_comuna}, estandariza el nombre de la comuna
+#' usando \code{ues::cut}, y luego utiliza ese nombre para actualizar códigos
+#' antiguos a los códigos vigentes mediante \code{ues::cut_actual}. Finalmente,
+#' agrega la jerarquía territorial desde \code{ues::poblacion_ine}.
 #'
 #' Si el código de comuna es \code{"99999"}, los nombres de comuna, provincia
 #' y región se asignan explícitamente como \code{"Ignorada"}.
@@ -20,16 +22,18 @@
 #'
 #' @return
 #' Un data frame con columnas territoriales estandarizadas según lo indicado
-#' en \code{agregar}. La variable original se conserva intacta y se agrega
-#' la columna \code{codigo_comuna}.
+#' en \code{agregar}. La variable original se conserva intacta.
 #'
 #' @details
-#' La función **no renombra, elimina ni duplica** la variable original de
-#' comuna. Solo agrega columnas nuevas con información territorial
-#' estandarizada.
+#' El flujo de estandarización es:
+#' \enumerate{
+#'   \item Código histórico → nombre de comuna
+#'   \item Nombre de comuna → código vigente
+#'   \item Código vigente → provincia y región
+#' }
 #'
-#' No se crean columnas auxiliares visibles (como \code{*_old}); cualquier
-#' lógica intermedia se maneja de forma interna y limpia.
+#' Los cruces intermedios se realizan solo cuando las columnas necesarias
+#' están disponibles, evitando errores por ausencia de variables.
 #'
 #' @seealso
 #' \code{\link{cut}},
@@ -66,40 +70,41 @@ estandarizar_territorio <- function(
 
   comuna_sym <- rlang::ensym(codigo_comuna)
 
-  # --- crear codigo_comuna estandarizado
+  # --- crear codigo_comuna de trabajo (sin tocar la original)
   df <- df %>%
     dplyr::mutate(
       codigo_comuna = !!comuna_sym
     )
 
-  # --- agregar nombre oficial de comuna
+  # --- obtener nombre base de comuna desde código histórico
   df <- df %>%
     dplyr::left_join(
       ues::cut,
       by = "codigo_comuna"
     )
 
-  # --- actualizar nombre de comuna (FIX AQUÍ)
-  if ("nombre_comuna" %in% names(df)) {
+  # --- actualizar código usando nombre de comuna (si existe)
+  if (
+    "nombre_comuna" %in% names(df) &&
+    all(c("nombre_comuna", "codigo_comuna") %in% names(ues::cut_actual))
+  ) {
 
     df <- df %>%
       dplyr::left_join(
         ues::cut_actual %>%
-          dplyr::rename(
-            nombre_comuna_actual = nombre_comuna
-          ),
+          dplyr::rename(codigo_comuna_actual = codigo_comuna),
         by = "nombre_comuna"
       ) %>%
       dplyr::mutate(
-        nombre_comuna = dplyr::coalesce(
-          nombre_comuna_actual,
-          nombre_comuna
+        codigo_comuna = dplyr::coalesce(
+          codigo_comuna_actual,
+          codigo_comuna
         )
       ) %>%
-      dplyr::select(-nombre_comuna_actual)
+      dplyr::select(-codigo_comuna_actual)
   }
 
-  # --- agregar provincia y región
+  # --- agregar jerarquía territorial final
   df <- df %>%
     dplyr::left_join(
       ues::poblacion_ine %>%
@@ -109,14 +114,14 @@ estandarizar_territorio <- function(
           nombre_provincia,
           nombre_region
         ),
-      by = c("codigo_comuna", "nombre_comuna")
+      by = "codigo_comuna"
     )
 
-  # --- regla explícita: comuna ignorada (99999)
+  # --- regla explícita comuna ignorada (99999)
   df <- df %>%
     dplyr::mutate(
       dplyr::across(
-        c("nombre_comuna", "nombre_provincia", "nombre_region"),
+        c(nombre_comuna, nombre_provincia, nombre_region),
         ~ dplyr::if_else(
           codigo_comuna == "99999",
           "Ignorada",
