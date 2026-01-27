@@ -1,20 +1,19 @@
 #' Estandarizar comuna y agregar jerarquía territorial
 #'
 #' Estandariza un código de comuna y agrega nombres oficiales de comuna,
-#' provincia y región, sin modificar ni renombrar la variable original
+#' provincia y región sin modificar ni renombrar la variable original
 #' del data frame.
 #'
-#' La función crea internamente una referencia a \code{codigo_comuna},
-#' cruza información oficial desde \code{ues::cut} y
-#' \code{ues::poblacion_ine}, y actualiza nombres de comuna utilizando
-#' \code{ues::cut_actual} para reflejar cambios históricos de códigos.
+#' La función utiliza \code{ues::cut} para obtener el nombre histórico
+#' de la comuna, actualiza dicho nombre usando \code{ues::cut_actual}
+#' cuando corresponde, y cruza la jerarquía territorial desde
+#' \code{ues::poblacion_ine}.
 #'
-#' No se crean ni devuelven columnas auxiliares (como *_old).
-#' Solo se agregan las columnas solicitadas explícitamente en
-#' \code{agregar}.
+#' No se crean ni devuelven columnas auxiliares. Solo se agregan las
+#' columnas solicitadas explícitamente en \code{agregar}.
 #'
-#' Si \code{codigo_comuna == "99999"}, los nombres de comuna, provincia
-#' y región se asignan como \code{"Ignorada"}.
+#' Si el código de comuna es \code{"99999"}, los nombres de comuna,
+#' provincia y región se asignan como \code{"Ignorada"}.
 #'
 #' @param df Un data frame o tibble.
 #' @param codigo_comuna Variable que identifica el código de comuna.
@@ -44,7 +43,7 @@
 #' }
 #'
 #' @importFrom rlang ensym
-#' @importFrom dplyr mutate left_join distinct select any_of if_else
+#' @importFrom dplyr mutate left_join distinct select any_of coalesce if_else
 #' @export
 estandarizar_territorio <- function(
   df,
@@ -60,11 +59,11 @@ estandarizar_territorio <- function(
 
   comuna_sym <- rlang::ensym(codigo_comuna)
 
-  # --- crear referencia interna estandarizada
+  # --- referencia interna (NO se devuelve)
   df <- df %>%
     dplyr::mutate(.codigo_comuna_std = !!comuna_sym)
 
-  # --- obtener nombre base de comuna
+  # --- nombre histórico de comuna
   df <- df %>%
     dplyr::left_join(
       ues::cut %>%
@@ -75,25 +74,20 @@ estandarizar_territorio <- function(
       by = c(".codigo_comuna_std" = "codigo_comuna")
     )
 
-  # --- actualizar nombre de comuna (si hay match)
+  # --- actualizar nombre de comuna (histórico → actual)
   df <- df %>%
     dplyr::left_join(
-      ues::cut_actual %>%
-        dplyr::distinct(
-          codigo_comuna,
-          nombre_comuna
-        ),
+      ues::cut_actual,
       by = "nombre_comuna",
-      suffix = c("", "_actual")
+      suffix = c("_old", "")
     ) %>%
     dplyr::mutate(
-      nombre_comuna = dplyr::if_else(
-        !is.na(nombre_comuna_actual),
-        nombre_comuna_actual,
-        nombre_comuna
+      nombre_comuna = dplyr::coalesce(
+        nombre_comuna,
+        nombre_comuna_old
       )
     ) %>%
-    dplyr::select(-nombre_comuna_actual)
+    dplyr::select(-dplyr::any_of("nombre_comuna_old"))
 
   # --- agregar provincia y región
   df <- df %>%
@@ -107,7 +101,7 @@ estandarizar_territorio <- function(
         ),
       by = c(
         ".codigo_comuna_std" = "codigo_comuna",
-        "nombre_comuna"      = "nombre_comuna"
+        "nombre_comuna"
       )
     )
 
