@@ -15,6 +15,9 @@
 #' @param agregar Vector de caracteres indicando qué niveles territoriales
 #'   agregar. Puede incluir uno o más de: \code{"comuna"},
 #'   \code{"provincia"}, \code{"region"}. Por defecto agrega todos.
+#' @param estandarizar_codigo Lógico. Si \code{TRUE}, normaliza el formato
+#'   del código de comuna (relleno a 5 dígitos y \code{"0"} → \code{"99999"}).
+#'   Si \code{FALSE}, utiliza el código tal como viene.
 #'
 #' @return Un data frame con columnas territoriales estandarizadas según
 #'   lo indicado en \code{agregar}. Las variables originales se conservan.
@@ -23,6 +26,7 @@
 #' El proceso de estandarización sigue estos pasos:
 #' \enumerate{
 #'   \item Crear un \code{codigo_comuna} desde la variable original.
+#'   \item (Opcional) Normalizar el formato del código de comuna.
 #'   \item Obtener el nombre histórico de la comuna desde \code{ues::cut}.
 #'   \item Actualizar nombre y código de comuna usando \code{ues::cut_actual},
 #'         cruzando exclusivamente por \code{nombre_comuna}.
@@ -37,12 +41,14 @@
 #' \code{\link{poblacion_ine}}
 #'
 #' @importFrom rlang ensym
-#' @importFrom dplyr mutate left_join distinct select any_of if_else
+#' @importFrom dplyr mutate left_join distinct select any_of if_else case_when
+#' @importFrom stringr str_length
 #' @export
 estandarizar_territorio <- function(
   df,
   codigo_comuna,
-  agregar = c("comuna", "provincia", "region")
+  agregar = c("comuna", "provincia", "region"),
+  estandarizar_codigo = TRUE
 ) {
 
   agregar <- match.arg(
@@ -59,7 +65,19 @@ estandarizar_territorio <- function(
       codigo_comuna = !!comuna_sym
     )
 
-  # --- 2. obtener nombre histórico de comuna
+  # --- 2. normalizar formato del codigo_comuna (opcional)
+  if (isTRUE(estandarizar_codigo)) {
+    df <- df %>%
+      dplyr::mutate(
+        codigo_comuna = dplyr::case_when(
+          stringr::str_length(codigo_comuna) == 4 ~ paste0("0", codigo_comuna),
+          codigo_comuna == "0" ~ "99999",
+          TRUE ~ codigo_comuna
+        )
+      )
+  }
+
+  # --- 3. obtener nombre histórico de comuna
   df <- df %>%
     dplyr::left_join(
       ues::cut %>%
@@ -67,7 +85,7 @@ estandarizar_territorio <- function(
       by = "codigo_comuna"
     )
 
-  # --- 3. actualizar nombre y codigo usando SOLO el nombre
+  # --- 4. actualizar nombre y codigo usando SOLO el nombre
   idx <- match(df$nombre_comuna, ues::cut_actual$nombre_comuna)
 
   df$nombre_comuna[!is.na(idx)] <-
@@ -76,7 +94,7 @@ estandarizar_territorio <- function(
   df$codigo_comuna[!is.na(idx)] <-
     ues::cut_actual$codigo_comuna[idx[!is.na(idx)]]
 
-  # --- 4. agregar provincia y región con codigo vigente
+  # --- 5. agregar provincia y región con codigo vigente
   df <- df %>%
     dplyr::left_join(
       ues::poblacion_ine %>%
@@ -89,7 +107,7 @@ estandarizar_territorio <- function(
       by = c("codigo_comuna", "nombre_comuna")
     )
 
-  # --- 5. regla explícita: comuna ignorada
+  # --- 6. regla explícita: comuna ignorada
   df <- df %>%
     dplyr::mutate(
       dplyr::across(
@@ -102,7 +120,7 @@ estandarizar_territorio <- function(
       )
     )
 
-  # --- 6. devolver solo columnas solicitadas
+  # --- 7. devolver solo columnas solicitadas
   columnas <- c(
     comuna    = "nombre_comuna",
     provincia = "nombre_provincia",
