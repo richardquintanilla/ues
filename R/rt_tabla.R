@@ -40,6 +40,13 @@ rt_tabla <- function (
 
   `%||%` <- function(a, b) if (!is.null(a)) a else b
 
+  # --- SOPORTE PARA crosstalk::SharedData ---
+  if (inherits(df, "SharedData")) {
+    df_data <- df$data()
+  } else {
+    df_data <- df
+  }
+
   titulos <- titulos %||% list()
   decimales_col <- decimales_col %||% list()
 
@@ -47,136 +54,13 @@ rt_tabla <- function (
     if (!is.null(decimales_col[[col]])) decimales_col[[col]] else decimales
   }
 
-  destacar_col <- intersect(destacar_col %||% character(0), names(df))
-  cols_porcentaje <- intersect(cols_porcentaje %||% character(0), names(df))
-  barras <- intersect(barras %||% character(0), names(df))
-  fijas <- intersect(fijas %||% character(0), names(df))
-
-  css_js <- htmltools::tagList(
-
-    htmltools::tags$style(
-      htmltools::HTML(sprintf("
-
-.reactable {
-  font-family: sans-serif !important;
-  font-size: 13px !important;
-}
-
-.reactable .rt-th,
-.reactable .rt-th-group {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-}
-
-.reactable .rt-th.col-fija {
-  justify-content: flex-start !important;
-  text-align: left !important;
-  padding-left: 8px;
-}
-
-.reactable .rt-td-inner:not(:has(.barra-outer)) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%%;
-}
-
-.reactable .rt-td.col-fija .rt-td-inner {
-  justify-content: flex-start !important;
-}
-
-.reactable .rt-tr:hover .rt-td:not(.col-fija) {
-  background-color: %s !important;
-}
-
-.rt-td.column-hover:not(.col-fija) {
-  background-color: %s !important;
-}
-
-.rt-td.col-fija {
-  background-color: #191970 !important;
-  color: white !important;
-}
-
-.rt-tr:hover .rt-td.col-fija {
-  background-color: #191970 !important;
-}
-
-.rt-td, .rt-td .rt-td-inner, .barra-outer, .barra-label {
-  transition: font-size 0.14s ease, transform 0.12s ease;
-}
-
-.rt-td.cell-hover:not(.col-fija) {
-  background-color: khaki !important;
-  z-index: 999 !important;
-  box-shadow: 0 0 0 2px midnightblue !important;
-  font-weight: bold !important;
-}
-
-.rt-td.cell-hover:not(.col-fija) .rt-td-inner,
-.rt-td.cell-hover:not(.col-fija) .barra-label {
-  font-size: 16px !important;
-  font-weight: bold !important;
-}
-
-.reactable .rt-thead-group,
-.reactable .rt-th-group {
-  background-color: #191970 !important;
-  color: white !important;
-  font-weight: bold !important;
-  text-align: center !important;
-  font-family: inherit !important;
-}
-
-.barra-outer {
-  border: 1px solid #d0d0d0 !important;
-  border-radius: 4px !important;
-}
-
-", highlight_color, highlight_color))
-    ),
-
-    htmltools::tags$script(
-      htmltools::HTML("
-        document.addEventListener('DOMContentLoaded', function() {
-          const tables = document.querySelectorAll('.reactable');
-
-          tables.forEach(table => {
-            const inners = table.querySelectorAll('.rt-td-inner');
-
-            inners.forEach(inner => {
-              const cell = inner.closest('.rt-td');
-              if (!cell) return;
-
-              const colClass = Array.from(cell.classList)
-                .find(cl => cl.startsWith('col-'));
-
-              if (cell.classList.contains('col-fija')) return;
-              if (!colClass) return;
-
-              inner.addEventListener('mouseenter', () => {
-                table.querySelectorAll('.' + colClass)
-                  .forEach(td => td.classList.add('column-hover'));
-                cell.classList.add('cell-hover');
-              });
-
-              inner.addEventListener('mouseleave', () => {
-                table.querySelectorAll('.column-hover')
-                  .forEach(td => td.classList.remove('column-hover'));
-                cell.classList.remove('cell-hover');
-              });
-            });
-          });
-        });
-      ")
-    )
-  )
+  destacar_col   <- intersect(destacar_col %||% character(0), names(df_data))
+  cols_porcentaje <- intersect(cols_porcentaje %||% character(0), names(df_data))
+  barras         <- intersect(barras %||% character(0), names(df_data))
+  fijas          <- intersect(fijas %||% character(0), names(df_data))
 
   font_family_base <- "sans-serif"
   font_size_base   <- "13px"
-
 
   clean_numeric <- function(x) {
     if (is.numeric(x)) return(as.numeric(x))
@@ -185,16 +69,17 @@ rt_tabla <- function (
     suppressWarnings(as.numeric(xch))
   }
 
-  columnas <- lapply(names(df), function(colname) {
+  columnas <- lapply(names(df_data), function(colname) {
     local({
       col <- colname
       class_col <- paste0("col-", gsub("\\s+", "_", col))
+
       estilo_base <- list(
-  fontFamily = font_family_base,
-  fontSize = font_size_base,
-  fontWeight = "normal",
-  textAlign = "center"
-)
+        fontFamily = font_family_base,
+        fontSize = font_size_base,
+        fontWeight = "normal",
+        textAlign = "center"
+      )
 
       if (col %in% fijas) {
         return(
@@ -224,7 +109,7 @@ rt_tabla <- function (
 
       if (col %in% barras) {
 
-        valores_limpios <- clean_numeric(df[[col]])
+        valores_limpios <- clean_numeric(df_data[[col]])
         pal <- if (length(color_barra) == 5) color_barra else rep("#ccc", 5)
         es_pct <- col %in% cols_porcentaje
         digs <- get_decimales(col)
@@ -248,7 +133,7 @@ rt_tabla <- function (
 
             cell = function(value, index) {
 
-              val_num <- clean_numeric(df[[col]][index])
+              val_num <- clean_numeric(df_data[[col]][index])
 
               if (!is.finite(val_num)) {
                 displayed <- ""
@@ -315,22 +200,14 @@ rt_tabla <- function (
               fontSize = font_size_base
             ),
             format = if (col %in% cols_porcentaje)
-              reactable::colFormat(
-                percent = TRUE,
-                digits = get_decimales(col),
-                locale = "es"
-              )
+              reactable::colFormat(percent = TRUE, digits = get_decimales(col), locale = "es")
             else
-              reactable::colFormat(
-                separators = TRUE,
-                digits = get_decimales(col),
-                locale = "es"
-              )
+              reactable::colFormat(separators = TRUE, digits = get_decimales(col), locale = "es")
           )
         )
       }
 
-      if (is.numeric(df[[col]])) {
+      if (is.numeric(df_data[[col]])) {
 
         es_pct <- col %in% cols_porcentaje
         digs <- get_decimales(col)
@@ -342,17 +219,9 @@ rt_tabla <- function (
             align = "center",
             style = estilo_base,
             format = if (es_pct)
-              reactable::colFormat(
-                percent = TRUE,
-                digits = digs,
-                locale = "es"
-              )
+              reactable::colFormat(percent = TRUE, digits = digs, locale = "es")
             else
-              reactable::colFormat(
-                separators = TRUE,
-                digits = digs,
-                locale = "es"
-              )
+              reactable::colFormat(separators = TRUE, digits = digs, locale = "es")
           )
         )
       }
@@ -366,26 +235,18 @@ rt_tabla <- function (
     })
   })
 
-  names(columnas) <- names(df)
+  names(columnas) <- names(df_data)
 
   fila_style_fun <- function(i) {
-    if (!is.null(destacar_row) && df[[1]][i] %in% destacar_row) {
+    if (!is.null(destacar_row) && df_data[[1]][i] %in% destacar_row) {
       return(list(background = color_destacar, fontWeight = "bold"))
     }
     list()
   }
 
-  columnGroups <- NULL
-  if (!is.null(grupos)) {
-    columnGroups <- lapply(names(grupos), function(g) {
-      reactable::colGroup(name = g, columns = grupos[[g]])
-    })
-  }
-
   tbl <- reactable::reactable(
-    df,
+    df,   # 👈 MANTENEMOS df para que SharedData siga funcionando
     columns = columnas,
-    columnGroups = columnGroups,
     rowStyle = fila_style_fun,
     highlight = TRUE,
     searchable = filtrar,
@@ -407,5 +268,5 @@ rt_tabla <- function (
     )
   )
 
-  htmltools::browsable(htmltools::tagList(css_js, tbl))
+  htmltools::browsable(tbl)
 }
