@@ -70,19 +70,19 @@ mapa_estadistico <- function(
         
         # variable de color
         if (tipo == "discreto") {
-        #        mapa_join <- mapa_join %>%
-        #                mutate(
-        #                        grupo = ntile(-valor, 3),
-        #                        grupo = factor(grupo, labels = c("Superior", "Medio", "Inferior")),
-        #                        fill_var = grupo
-        #                )
+                mapa_join <- mapa_join %>%
+                        mutate(
+                                grupo = ntile(-valor, 3),
+                                grupo = factor(grupo, labels = c("Superior", "Medio", "Inferior")),
+                                fill_var = grupo
+                        )
 
-                mapa_join <- mapa_join %>% 
-          mutate(
-            fill_var = factor(valor,
-                              levels = c(1, 2, 3),
-                              labels = c("Inferior", "Medio", "Superior"))
-          )
+          #mapa_join <- mapa_join %>% 
+          #mutate(
+          #  fill_var = factor(valor,
+          #                    levels = c(1, 2, 3),
+          #                    labels = c("Inferior", "Medio", "Superior"))
+          #)
           
         } else {
                 mapa_join <- mapa_join %>%
