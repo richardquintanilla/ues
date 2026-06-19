@@ -364,7 +364,7 @@ rt_tabla <- function (
   }
 
   tbl <- reactable::reactable(
-    df,  # 👈 mantenemos df para que SharedData funcione
+    df, 
     columns = columnas,
     columnGroups = columnGroups,
     rowStyle = fila_style_fun,
@@ -373,7 +373,7 @@ rt_tabla <- function (
     striped = TRUE,
     bordered = TRUE,
     pagination = FALSE,
-    language = reactable::reactableLang(searchPlaceholder = "Filtrar"),
+    language = reactable::reactableLang(searchPlaceholder = "Filtrar", noData = "No se encontraron resultados"),
     defaultColDef = reactable::colDef(
       align = "center",
       html = TRUE,
