@@ -65,6 +65,12 @@ estandarizar_territorio <- function(
       codigo_comuna = !!comuna_sym
     )
 
+  # --- CONVERSIÓN A CHARACTER (NUEVO)
+  df <- df %>%
+    dplyr::mutate(
+      codigo_comuna = as.character(codigo_comuna)
+    )
+
   # --- 2. normalizar formato del codigo_comuna (opcional)
   if (isTRUE(estandarizar_codigo)) {
     df <- df %>%
@@ -94,6 +100,12 @@ estandarizar_territorio <- function(
   df$codigo_comuna[!is.na(idx)] <-
     ues::cut_actual$codigo_comuna[idx[!is.na(idx)]]
 
+  # --- CONVERSIÓN A CHARACTER ANTES DEL JOIN (NUEVO)
+  df <- df %>%
+    dplyr::mutate(
+      codigo_comuna = as.character(codigo_comuna)
+    )
+
   # --- 5. agregar provincia y región con codigo vigente
   df <- df %>%
     dplyr::left_join(
@@ -103,6 +115,9 @@ estandarizar_territorio <- function(
           nombre_comuna,
           nombre_provincia,
           nombre_region
+        ) %>%
+        dplyr::mutate(
+          codigo_comuna = as.character(codigo_comuna)  # --- NUEVO
         ),
       by = c("codigo_comuna", "nombre_comuna")
     )
